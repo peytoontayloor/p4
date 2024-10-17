@@ -37,8 +37,8 @@ public:
     }
 };
 
-void carODE(const ompl::control::ODESolver::StateType & /* q */, const ompl::control::Control * /* control */,
-            ompl::control::ODESolver::StateType & /* qdot */)
+void carODE(const ompl::control::ODESolver::StateType & q, const ompl::control::Control * control,
+            ompl::control::ODESolver::StateType & qdot)
 {
     /*
         parameters: 
@@ -73,9 +73,37 @@ void carODE(const ompl::control::ODESolver::StateType & /* q */, const ompl::con
 
 }
 
-void makeStreet(std::vector<Rectangle> & /* obstacles */)
+void makeStreet(std::vector<Rectangle> & obstacles)
 {
     // TODO: Fill in the vector of rectangles with your street environment.
+    //found dimensions for this environment from the project spec
+     Rectangle r1, r2, r3, r4;
+
+    r1.x = -5;
+    r1.y = -10;
+    r1.width = 10;
+    r1.height = 2;
+
+    r2.x = -5;
+    r2.y = -4;
+    r2.width = 4;
+    r2.height = 10;
+
+    r3.x = 2;
+    r3.y = -4;
+    r3.width = 3;
+    r3.height = 10;
+
+    r4.x = -5;
+    r4.y = 6;
+    r4.width = 10;
+    r4.height = 2;
+
+    obstacles.push_back(r1);
+    obstacles.push_back(r2);
+    obstacles.push_back(r3);
+    obstacles.push_back(r4);
+
 }
 
 ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & /* obstacles */)
