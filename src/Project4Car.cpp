@@ -172,7 +172,7 @@ void planCar(ompl::control::SimpleSetupPtr & ss, int choice)
     }
     else
     {
-        std::cout << "No Slution Found" << std:endl;
+        std::cout << "No Solution Found" << std:endl;
     }
 
 }
