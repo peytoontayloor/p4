@@ -40,7 +40,37 @@ public:
 void carODE(const ompl::control::ODESolver::StateType & /* q */, const ompl::control::Control * /* control */,
             ompl::control::ODESolver::StateType & /* qdot */)
 {
-    // TODO: Fill in the ODE for the car's dynamics
+    /*
+        parameters: 
+        vector q, which describes current state of the system
+        control u, which defines the inputs applied to sys at state q
+        vector qdot, which is where the output of the computation is stored
+
+        Followed steps for implementing this from: https://ompl.kavrakilab.org/odeint.html
+        also from: https://ompl.kavrakilab.org/RigidBodyPlanningWithODESolverAndControls_8cpp_source.html
+
+    */
+
+    //TODO: set the velocity and acceleration bounds (not sure if happends here)
+
+    //first grab the control inputs, w (angular velocity) and v (acceleration of vehicle):
+    const double *controls = u->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
+    const double w = controls[0];
+    const double vdot = controls[1];
+
+    //get the current orientation of car: q[0] = x, q[1] = y, q[2] = theta, q[3] = v
+    const double theta = q[2];
+    //q = (x, y, theta, v) and qdot = (x, y, w, v)
+    //ensure qdot same size as q and zero out all values (still not sure abt this, got from ompl documentation)
+    qdot.resize(q.size(), 0);
+
+    //our car system looks like:
+    //qdot = (w, y, w, v) = (vcos(theta), vsin(theta), w, v)
+    qdot[0] = v * cos(theta);
+    qdot[1] = v * sin(theta);
+    qdot[2] = w;
+    qdot[3] = v;
+
 }
 
 void makeStreet(std::vector<Rectangle> & /* obstacles */)
