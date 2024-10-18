@@ -150,6 +150,7 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     cspace->setBounds(cbounds);
 
     //set up our simple setup class:
+    //TODO: needs to be of type SimpleSetupPtr when returning, investigate how to do this
     ompl::control::SimpleSetup ss(cspace);
 
     //TODO: figure out how to set the validity checker correctly
@@ -198,7 +199,7 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
   
     ss.setup();
 
-    return *ss;
+    return ss;
 }
 
 void planCar(ompl::control::SimpleSetupPtr & ss, int choice)

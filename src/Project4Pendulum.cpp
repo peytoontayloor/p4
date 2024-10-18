@@ -100,6 +100,7 @@ ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
     cspace->setBounds(cbounds);
     
     //initialize our simple setup class:
+    //TODO: needs to be of type SimpleSetupPtr when returning, investigate how to do this
     ompl::control::SimpleSetup ss(cspace);
 
     //TODO: figure out how to set the validity checker correctly
@@ -130,7 +131,7 @@ ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
 
     ss.setup();
 
-    return *ss;
+    return ss;
 }
 
 void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
