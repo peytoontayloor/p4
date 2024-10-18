@@ -51,7 +51,7 @@ void carODE(const ompl::control::ODESolver::StateType & q, const ompl::control::
 
     */
 
-    //TODO: set the velocity and acceleration bounds (not sure if happends here)
+    //TODO: set the velocity and acceleration bounds (not sure if happends here) --> might happen when propogation set in createCar
     //TODO: double-check if math correct 
 
     //first grab the control inputs, w (angular velocity) and v (acceleration of vehicle):
@@ -115,10 +115,9 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
 
     //create car's state space:
 
-    //TODO: confirm state space correct SE(2)
     auto space(std::make_shared<ompl::base::SE2StateSpace());
 
-    //TODO: investigate if these are correct for the environment given in the assignment (x low and high are smaller)
+    //TODO: investigate if these are correct for the environment given in the assignment (might want to set specifically for each dimension)
     base::RealVectorBounds bounds(2);
     bounds.setLow(-10);
     bounds.setHigh(10);
@@ -134,9 +133,10 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
 
     //TODO: figure out what the high and low bounds should be for the control space
     //TODO: see if need multiple high and low bounds for each dimension/variable in the control space
+    //right now setting them to the numbers seen on the demo
     ompl::base::RealVectorBounds cbounds(2);
-    cbounds.setLow();
-    cbounds.setHight();
+    cbounds.setLow(-0.3);
+    cbounds.setHight(0.3);
 
     cspace->setBounds(cbounds);
 
@@ -167,10 +167,13 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss.getSpaceInformation(), &carODE));
 
     //TODO: need to change &KinematicCarPostIntegration, this is from the documentation demo and doesnt apply here
-    //it seems to be enforcing rotation constraints on the car? but am iffy on its functionality as of now
-    ss.setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &KinematicCarPostIntegration));
+    //it seems to be enforcing rotation constraints on the car
+    //we probably want it to enforce constraints, but it is an optional feature, so removing for now
+    //including the demo example commented out below:
+    //ss.setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &KinematicCarPostIntegration));
+    ss.setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
   
-    //TODO: check start and goal states are okay
+    //TODO: check start and goal states are okay in our environment roughly based off of project spec car environment
     ompl::base::ScopedState<ompl::base::SE2StateSpace> start(space);
     start->setX(-4.0);
     start->setY(-5.0);
