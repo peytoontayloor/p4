@@ -17,6 +17,14 @@
 // Your implementation of RG-RRT
 #include "RG-RRT.h"
 
+//includes from the demo documentation that I think are necessary:
+ #include <ompl/control/SpaceInformation.h>
+ #include <ompl/base/spaces/SE2StateSpace.h>
+ #include <ompl/control/ODESolver.h>
+ #include <ompl/control/spaces/RealVectorControlSpace.h>
+ #include <ompl/control/SimpleSetup.h>
+ #include <ompl/config.h>
+
 // Your projection for the car
 class CarProjection : public ompl::base::ProjectionEvaluator
 {
