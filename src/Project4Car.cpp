@@ -60,7 +60,6 @@ void carODE(const ompl::control::ODESolver::StateType & q, const ompl::control::
     */
 
     //TODO: set the velocity and acceleration bounds (not sure if happends here) --> might happen when propogation set in createCar
-    //TODO: double-check if math correct 
 
     //first grab the control inputs, w (angular velocity) and v (acceleration of vehicle):
     const double *u = control->as<ompl::control::RealVectorControlSpace::ControlType>()->values;

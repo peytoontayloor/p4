@@ -55,8 +55,6 @@ void pendulumODE(const ompl::control::ODESolver::StateType & q, const ompl::cont
         qdot = (w, -gcos(theta)+t)
     */
 
-    //TODO: investigate which aspects are the control inputs, right now operating under torque being one
-
     const double *controls = u->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
     const double torque = controls[0];
 
