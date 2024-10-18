@@ -63,9 +63,9 @@ void carODE(const ompl::control::ODESolver::StateType & q, const ompl::control::
     //TODO: double-check if math correct 
 
     //first grab the control inputs, w (angular velocity) and v (acceleration of vehicle):
-    const double *controls = u->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
-    const double w = controls[0];
-    const double vdot = controls[1];
+    const double *u = control->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
+    const double w = u[0];
+    const double vdot = u[1];
 
     //get the current orientation of car: q[0] = x, q[1] = y, q[2] = theta, q[3] = v
     const double theta = q[2];
@@ -124,10 +124,10 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
 
     //create car's state space:
 
-    auto space(std::make_shared<ompl::base::SE2StateSpace());
+    auto space(std::make_shared<ompl::base::SE2StateSpace>());
 
     //TODO: investigate if these are correct for the environment given in the assignment (might want to set specifically for each dimension)
-    base::RealVectorBounds bounds(2);
+    ompl::base::RealVectorBounds bounds(2);
     bounds.setLow(-10);
     bounds.setHigh(10);
     
@@ -136,7 +136,7 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     //setting the control space up:
 
     //TODO: check that the dimensions are correct
-    auto cspace(std::make_shared<ompl::control::RealVectorControlSpace(space, 2));
+    auto cspace(std::make_shared<ompl::control::RealVectorControlSpace>(space, 2));
 
     //set the control space bounds:
 
@@ -198,7 +198,7 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
   
     ss.setup();
 
-    return ss;
+    return *ss;
 }
 
 void planCar(ompl::control::SimpleSetupPtr & ss, int choice)
@@ -239,7 +239,7 @@ void planCar(ompl::control::SimpleSetupPtr & ss, int choice)
     }
     else
     {
-        std::cout << "No Solution Found" << std:endl;
+        std::cout << "No Solution Found" << std::endl;
     }
 
 }
