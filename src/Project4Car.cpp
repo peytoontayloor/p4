@@ -113,10 +113,10 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
         Followed along with ompl demo as much as I could: https://ompl.kavrakilab.org/RigidBodyPlanningWithODESolverAndControls_8cpp_source.html
     */
 
-    // TODO: Create and setup the car's state space, control space, validity checker, everything you need for planning.
+    //create car's state space:
 
-    //create car's state space: (SE2)
-    auto space(std::make_shared<base::SE2StateSpace());
+    //TODO: confirm state space correct SE(2)
+    auto space(std::make_shared<ompl::base::SE2StateSpace());
 
     //TODO: investigate if these are correct for the environment given in the assignment (x low and high are smaller)
     base::RealVectorBounds bounds(2);
@@ -125,13 +125,68 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     
     space->setBounds(bounds);
 
-    //TODO: figure out how to set the control space
-    //TODO: figure out how to set the validity checker correctly
-    //TODO: propogate with the ODE function?
-    //TODO: set start and goal states including the radius for the goal region
-    //TODO: return the simple setup pointer
+    //setting the control space up:
 
-    return nullptr;
+    //TODO: check that the dimensions are correct
+    auto cspace(std::make_shared<ompl::control::RealVectorControlSpace(space, 2));
+
+    //set the control space bounds:
+
+    //TODO: figure out what the high and low bounds should be for the control space
+    //TODO: see if need multiple high and low bounds for each dimension/variable in the control space
+    ompl::base::RealVectorBounds cbounds(2);
+    cbounds.setLow();
+    cbounds.setHight();
+
+    cspace->setBounds(cbounds);
+
+    //set up our simple setup class:
+    ompl::control::SimpleSetup ss(cspace);
+
+    //TODO: figure out how to set the validity checker correctly
+
+    //first get the space information pointer from ss:
+    ompl::base::SpaceInformationPtr si = ss.getSpaceInformation();
+
+
+    //TODO: not sure how to do this yet- I think we need to pull out just the SE(2) space from our space information?
+
+    //below is following exactly like how we did in project 3, but thinking this is wrong
+    //the placeholder is for the state, but we want just state space, so maybe want to define?
+
+    //something that the documentation does is: (which I think does what we want, just not sure how to integrate here)
+    //const auto *se2state = state->as<ob::SE2StateSpace::StateType>();
+    //const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0);
+    //const auto *rot = se2state->as<ob::SO2StateSpace::StateType>(1);
+
+    si->setStateValidityChecker(std::bind(isValidStateSquare, std::placeholders::_1, 1, obstacles));
+    si->setup();
+
+    //TODO: propogate with the ODE function
+
+    auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss.getSpaceInformation(), &carODE));
+
+    //TODO: need to change &KinematicCarPostIntegration, this is from the documentation demo and doesnt apply here
+    //it seems to be enforcing rotation constraints on the car? but am iffy on its functionality as of now
+    ss.setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &KinematicCarPostIntegration));
+  
+    //TODO: check start and goal states are okay
+    ompl::base::ScopedState<ompl::base::SE2StateSpace> start(space);
+    start->setX(-4.0);
+    start->setY(-5.0);
+    start->setYaw(0.0);
+  
+    ompl::base::ScopedState<ompl::base::SE2StateSpace> goal(space);
+    goal->setX(4.0);
+    goal->setY(5.0);
+    goal->setYaw(0.0);
+    
+    //TODO: verify goal region radius okay, this is from demo again so not sure if applies to our environment
+    ss.setStartAndGoalStates(start, goal, 0.05);
+  
+    ss.setup();
+
+    return ss;
 }
 
 void planCar(ompl::control::SimpleSetupPtr & ss, int choice)
@@ -149,20 +204,20 @@ void planCar(ompl::control::SimpleSetupPtr & ss, int choice)
     //TODO: need to verify if this is the correct method of doing so:
     if (choice == 1)
     {
-        ss.setPlanner(new ompl::geometric::RRT(ss.getSpaceInformation()));
+        ss.setPlanner(new ompl::control::RRT(ss.getSpaceInformation()));
     }
     if (choice == 2)
     {
-        ss.setPlanner(new ompl::geometric::KPIECE(ss.getSpaceInformation()));
+        ss.setPlanner(new ompl::control::KPIECE(ss.getSpaceInformation()));
     }
     if (choice == 3)
     {
         //TODO: make sure RG-RRT in 'right' format
-        ss.setPlanner(new ompl::geometric::RG-RRT(ss.getSpaceInformation()));
+        ss.setPlanner(new ompl::control::RG-RRT(ss.getSpaceInformation()));
     }
 
     //solve the problem:
-    base::PlannerStatus solved = ss.solve(10.0);
+    ompl::base::PlannerStatus solved = ss.solve(10.0);
 
     if (solved)
     {
