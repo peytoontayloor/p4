@@ -136,7 +136,7 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     //right now setting them to the numbers seen on the demo
     ompl::base::RealVectorBounds cbounds(2);
     cbounds.setLow(-0.3);
-    cbounds.setHight(0.3);
+    cbounds.setHigh(0.3);
 
     cspace->setBounds(cbounds);
 
@@ -164,14 +164,14 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
 
     //TODO: propogate with the ODE function
 
-    auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss.getSpaceInformation(), &carODE));
+    auto odeSolver(std::make_shared<ompl::control::ODEBasicSolver<>>(ss.getSpaceInformation(), &carODE));
 
     //TODO: need to change &KinematicCarPostIntegration, this is from the documentation demo and doesnt apply here
     //it seems to be enforcing rotation constraints on the car
     //we probably want it to enforce constraints, but it is an optional feature, so removing for now
     //including the demo example commented out below:
     //ss.setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &KinematicCarPostIntegration));
-    ss.setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
+    ss.setStatePropagator(ompl::control::ODESolver::getStatePropagator(odeSolver));
   
     //TODO: check start and goal states are okay in our environment roughly based off of project spec car environment
     ompl::base::ScopedState<ompl::base::SE2StateSpace> start(space);
