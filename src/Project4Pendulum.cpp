@@ -76,10 +76,10 @@ ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
 
     //TODO: make sure state space correct! --> if pendulum is dot, R^2, if line, SE(2)
     //create pendulum's state space: R^2
-    auto space(std::make_shared<ompl::base::RealVectorStateSpace(2));
+    auto space(std::make_shared<ompl::base::RealVectorStateSpace>(2));
 
     //TODO: investigate if these are correct for the environment
-    base::RealVectorBounds bounds(2);
+    ompl::base::RealVectorBounds bounds(2);
     bounds.setLow(-10);
     bounds.setHigh(10);
     
@@ -88,7 +88,7 @@ ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
     //anything below this is based off current implementation of createCar, if we make changes to that, will need to update here one too
     
     //control space setup:
-    auto cspace(std::make_shared<ompl::control::RealVectorBounds)
+    auto cspace(std::make_shared<ompl::control::RealVectorControlSpace>(space, 2));
 
     //set control space bounds
     //TODO: double check 
@@ -130,7 +130,7 @@ ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
 
     ss.setup();
 
-    return ss;
+    return *ss;
 }
 
 void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
@@ -166,7 +166,7 @@ void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
     }
     else
     {
-        std::cout << "No Solution Found" << std:endl;
+        std::cout << "No Solution Found" << std::endl;
     }
 }
 
