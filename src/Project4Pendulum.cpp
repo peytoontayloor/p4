@@ -14,6 +14,14 @@
 // Your implementation of RG-RRT
 #include "RG-RRT.h"
 
+//includes from the demo documentation that I think are necessary:
+ #include <ompl/control/SpaceInformation.h>
+ #include <ompl/base/spaces/RealVectorStateSpace.h>
+ #include <ompl/control/ODESolver.h>
+ #include <ompl/control/spaces/RealVectorControlSpace.h>
+ #include <ompl/control/SimpleSetup.h>
+ #include <ompl/config.h>
+
 // Your projection for the pendulum
 class PendulumProjection : public ompl::base::ProjectionEvaluator
 {
@@ -69,8 +77,9 @@ ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
        we figure out how to correctly set up.
     */
 
-    //create pendulum's state space: (SE2)
-    auto space(std::make_shared<base::SE2StateSpace());
+    //TODO: make sure state space correct!
+    //create pendulum's state space: R^2
+    auto space(std::make_shared<ompl::base::RealVectorStateSpace(2));
 
     //TODO: investigate if these are correct for the environment
     base::RealVectorBounds bounds(2);
@@ -79,14 +88,52 @@ ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
     
     space->setBounds(bounds);
 
-    //anything below this is based off current implementation of createCar, if change, will need to update this one too
-    //TODO: figure out how to set the control space
-    //TODO: figure out how to set the validity checker correctly
-    //TODO: propogate with the ODE function?
-    //TODO: set start and goal states including the radius for the goal region
-    //TODO: return the simple setup pointer
+    //anything below this is based off current implementation of createCar, if we make changes to that, will need to update here one too
+    
+    //control space setup:
+    auto cspace(std::make_shared<ompl::control::RealVectorBounds)
 
-    return nullptr;
+    //set control space bounds
+    //TODO: double check 
+
+    ompl::base::RealVectorBounds cbounds(2);
+    cbounds.setLow(-0.3);
+    cbounds.setHigh(0.3);
+
+    cspace->setBounds(cbounds);
+    
+    //initialize our simple setup class:
+    ompl::control::SimpleSetup ss(cspace);
+
+    //TODO: figure out how to set the validity checker correctly
+    //(following create car method as of now, pretty sure wrong)
+    ompl::base::SpaceInformationPtr si = ss.getSpaceInformation();
+    si->setStateValidityChecker(std::bind(isValidStatePoint, std::placeholders::_1, obstacles));
+    si->setup();
+
+    //propogate with the ODE function
+    auto odeSolver(std::make_shared<ompl::control::ODEBasicSolver<>>(ss.getSpaceInformation(), &pendulumODE));
+
+    //TODO: figure out how to set bounds here (more info in createCar comments)
+    ss.setStatePropagator(ompl::control::ODESolver::getStatePropagator(odeSolver));
+
+    //TODO: confirm start and goal states okay for environment:
+    ompl::base::ScopedState<ompl::base::RealVectorStateSpace> start(space);
+    start->setX(-5.0);
+    start->setY(0.0);
+    start->setYaw(0.0);
+  
+    ompl::base::ScopedState<ompl::base::RealVectorStateSpace> goal(space);
+    goal->setX(2.0);
+    goal->setY(0.0);
+    goal->setYaw(0.0);
+
+    //TODO: check goal if goal region/radius okay
+    ss.setStartAndGoalStates(start, goal, 0.05);
+
+    ss.setup();
+
+    return ss;
 }
 
 void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
@@ -99,16 +146,16 @@ void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
     //TODO: need to verify if setting planner right:
     if (choice == 1)
     {
-        ss.setPlanner(new ompl::geometric::RRT(ss.getSpaceInformation()));
+        ss.setPlanner(new ompl::control::RRT(ss.getSpaceInformation()));
     }
     if (choice == 2)
     {
-        ss.setPlanner(new ompl::geometric::KPIECE(ss.getSpaceInformation()));
+        ss.setPlanner(new ompl::control::KPIECE(ss.getSpaceInformation()));
     }
     if (choice == 3)
     {
         //TODO: make sure RG-RRT in 'right' format
-        ss.setPlanner(new ompl::geometric::RG-RRT(ss.getSpaceInformation()));
+        ss.setPlanner(new ompl::control::RG-RRT(ss.getSpaceInformation()));
     }
 
     //solve the problem:
