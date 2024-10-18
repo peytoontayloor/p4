@@ -69,6 +69,7 @@ void carODE(const ompl::control::ODESolver::StateType & q, const ompl::control::
 
     //get the current orientation of car: q[0] = x, q[1] = y, q[2] = theta, q[3] = v
     const double theta = q[2];
+    const double v = q[3];
     //q = (x, y, theta, v) and qdot = (x, y, w, v)
     //ensure qdot same size as q and zero out all values (still not sure abt this, got from ompl documentation)
     qdot.resize(q.size(), 0);
@@ -78,7 +79,7 @@ void carODE(const ompl::control::ODESolver::StateType & q, const ompl::control::
     qdot[0] = v * cos(theta);
     qdot[1] = v * sin(theta);
     qdot[2] = w;
-    qdot[3] = v;
+    qdot[3] = vdot;
 
 }
 

@@ -57,15 +57,12 @@ void pendulumODE(const ompl::control::ODESolver::StateType & q, const ompl::cont
 
     //TODO: investigate which aspects are the control inputs, right now operating under torque being one
 
-    //TODO: may need to remove this
     const double *controls = u->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
     const double torque = controls[0];
 
     qdot.resize(q.size(), 0);
 
     //q[0] = theta, q[1] = w
-
-    //TODO: define torque (need to verify if control input)
     qdot[0] = q[1]; //w
     qdot[1] = ((-9.81)*(cos(q[0])) + torque)
 }
@@ -77,7 +74,7 @@ ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
        we figure out how to correctly set up.
     */
 
-    //TODO: make sure state space correct!
+    //TODO: make sure state space correct! --> if pendulum is dot, R^2, if line, SE(2)
     //create pendulum's state space: R^2
     auto space(std::make_shared<ompl::base::RealVectorStateSpace(2));
 
