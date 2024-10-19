@@ -70,7 +70,7 @@ bool lineLineIntersection(const Line& l1, const Line& l2)
 }
 
 // Intersect the point (x,y) with the set of rectangles.  If the point lies outside of all obstacles, return true.
-bool isValidPoint(double x, double y, const std::vector<Rectangle>& obstacles)
+bool isValidStatePoint(double x, double y, const std::vector<Rectangle>& obstacles)
 {
     for(size_t i = 0; i < obstacles.size(); ++i)
     {
@@ -130,7 +130,7 @@ bool isValidCircle(double x, double y, double radius, const std::vector<Rectangl
 
 // Intersect a square with center at (x,y), orientation theta, and the given side length with the set of rectangles.
 // If the square lies outside of all obstacles, return true
-bool isValidSquare(double x, double y, double theta, double sideLength, const std::vector<Rectangle>& obstacles)
+bool isValidStateSquare(double x, double y, double theta, double sideLength, const std::vector<Rectangle>& obstacles)
 {
     double halfLength = sideLength / 2.0;
 
@@ -205,7 +205,7 @@ bool isValidSquare(double x, double y, double theta, double sideLength, const st
     // The robot is completely inside an obstacle - not covered by line intersections
     // If this happens, at least one vertex of the robot is inside an obstacle.  Easy to check because axis-alignment
     for(size_t i = 0; i < pts.size(); ++i)
-        if (!isValidPoint(pts[i].first, pts[i].second, obstacles))
+        if (!isValidStatePoint(pts[i].first, pts[i].second, obstacles))
             return false;
 
     // The obstacle is completely inside the robot - also not covered by line intersections
