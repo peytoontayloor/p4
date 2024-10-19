@@ -153,7 +153,6 @@ void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
     }
     if (choice == 3)
     {
-        //TODO: make sure RG-RRT in 'right' format
         ss.setPlanner(new ompl::control::RGRRT(ss.getSpaceInformation()));
     }
 
