@@ -148,7 +148,6 @@ void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
     */
 
     //set the planner based on choice:
-    //TODO: need to verify if setting planner right:
     if (choice == 1)
     {
         ss->setPlanner(std::make_shared<ompl::control::RRT>(ss->getSpaceInformation()));

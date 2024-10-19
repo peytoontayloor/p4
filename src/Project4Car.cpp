@@ -64,8 +64,6 @@ void carODE(const ompl::control::ODESolver::StateType & q, const ompl::control::
 
     */
 
-    //TODO: set the velocity and acceleration bounds (not sure if happends here) --> might happen when propogation set in createCar
-
     //first grab the control inputs, w (angular velocity) and v (acceleration of vehicle):
     const double *u = control->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
     const double w = u[0];
@@ -219,7 +217,6 @@ void planCar(ompl::control::SimpleSetupPtr & ss, int choice)
     */
 
     //set the planner based on choice:
-    //TODO: need to verify if this is the correct method of setting the planners
     if (choice == 1)
     {
         //setPlanner requires a PlannerPtr not just a Planner
