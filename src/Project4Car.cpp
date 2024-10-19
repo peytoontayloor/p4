@@ -18,12 +18,17 @@
 #include "RG-RRT.h"
 
 //includes from the demo documentation that I think are necessary:
- #include <ompl/control/SpaceInformation.h>
- #include <ompl/base/spaces/SE2StateSpace.h>
- #include <ompl/control/ODESolver.h>
- #include <ompl/control/spaces/RealVectorControlSpace.h>
- #include <ompl/control/SimpleSetup.h>
- #include <ompl/config.h>
+#include <ompl/control/SpaceInformation.h>
+#include <ompl/base/spaces/SE2StateSpace.h>
+#include <ompl/control/ODESolver.h>
+#include <ompl/control/spaces/RealVectorControlSpace.h>
+#include <ompl/control/SimpleSetup.h>
+#include <ompl/config.h>
+
+//need includes for the planners too!
+#include <ompl/control/planners/rrt/RRT.h>
+#include <ompl/control/planners/kpiece/KPIECE1.h>
+
 
 // Your projection for the car
 class CarProjection : public ompl::base::ProjectionEvaluator
@@ -148,12 +153,14 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
 
     //set up our simple setup class:
     //TODO: needs to be of type SimpleSetupPtr when returning, investigate how to do this
-    ompl::control::SimpleSetup ss(cspace);
+    //making it a simple setup ptr instead of just simple setup the same as we did with space information ptr in project 3
+    //ompl::control::SimpleSetupPtr ss(cspace);
+    ompl::control::SimpleSetupPtr ss = std::make_shared<ompl::control::SimpleSetup>(cspace);
 
     //TODO: figure out how to set the validity checker correctly
 
     //first get the space information pointer from ss:
-    ompl::base::SpaceInformationPtr si = ss.getSpaceInformation();
+    ompl::base::SpaceInformationPtr si = ss->getSpaceInformation();
 
 
     //TODO: not sure how to do this yet- I think we need to pull out just the SE(2) space from our space information?
@@ -167,18 +174,19 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     //const auto *rot = se2state->as<ob::SO2StateSpace::StateType>(1);
 
     //project spec says: "you must verify that the velocity of the vehicle is within the bounds you set"
+    //TODO: compiler error with linking bc not correct parameters for isValidStateSquare
     si->setStateValidityChecker(std::bind(isValidStateSquare, std::placeholders::_1, 1, obstacles));
     si->setup();
 
     //use the odeSolver to propagate:
-    auto odeSolver(std::make_shared<ompl::control::ODEBasicSolver<>>(ss.getSpaceInformation(), &carODE));
+    auto odeSolver(std::make_shared<ompl::control::ODEBasicSolver<>>(ss->getSpaceInformation(), &carODE));
 
     //TODO: investigate  &KinematicCarPostIntegration from demo!
     //it seems to be enforcing rotation constraints on the car
     //we probably want it to enforce constraints, but it is an optional feature, so removing for now
     //including the demo example commented out below:
     //ss.setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &KinematicCarPostIntegration));
-    ss.setStatePropagator(ompl::control::ODESolver::getStatePropagator(odeSolver));
+    ss->setStatePropagator(ompl::control::ODESolver::getStatePropagator(odeSolver));
   
     //TODO: check start and goal states are okay in our environment roughly based off of project spec car environment
     ompl::base::ScopedState<ompl::base::SE2StateSpace> start(space);
@@ -192,9 +200,9 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     goal->setYaw(0.0);
     
     //TODO: verify goal region radius okay, this is from demo again so not sure if applies to our environment
-    ss.setStartAndGoalStates(start, goal, 0.05);
+    ss->setStartAndGoalStates(start, goal, 0.05);
   
-    ss.setup();
+    ss->setup();
 
     return ss;
 }
@@ -214,25 +222,31 @@ void planCar(ompl::control::SimpleSetupPtr & ss, int choice)
     //TODO: need to verify if this is the correct method of setting the planners
     if (choice == 1)
     {
-        ss.setPlanner(new ompl::control::RRT(ss.getSpaceInformation()));
+        //setPlanner requires a PlannerPtr not just a Planner
+        //ss->setPlanner(new ompl::control::RRT(ss->getSpaceInformation()));
+        //follow similar method as SimpleSetupPtr, i.e., std::make_shared<Planner> gives a PlannerPtr
+
+        ss->setPlanner(std::make_shared<ompl::control::RRT>(ss->getSpaceInformation()));
     }
     if (choice == 2)
     {
-        ss.setPlanner(new ompl::control::KPIECE(ss.getSpaceInformation()));
-    }
-    if (choice == 3)
-    {
-        ss.setPlanner(new ompl::control::RGRRT(ss.getSpaceInformation()));
+        ss->setPlanner(std::make_shared<ompl::control::KPIECE1>(ss->getSpaceInformation()));
     }
 
+    //comment out RGRRT for now- wait until we implement bc it causes comiler errors rn
+    /*if (choice == 3)
+    {
+        ss->setPlanner(std::make_shared<ompl::control::RGRRT>(ss->getSpaceInformation()));
+    }*/
+
     //solve the problem:
-    ompl::base::PlannerStatus solved = ss.solve(10.0);
+    ompl::base::PlannerStatus solved = ss->solve(10.0);
 
     if (solved)
     {
         std::cout << "Found Solution:" << std::endl;
         //convert to geometric path so we can nicely print path as matrix
-        ss.getSolutionPath().asGeometric().printAsMatrix(std::cout);
+        ss->getSolutionPath().asGeometric().printAsMatrix(std::cout);
     }
     else
     {

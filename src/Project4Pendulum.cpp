@@ -15,12 +15,16 @@
 #include "RG-RRT.h"
 
 //includes from the demo documentation that I think are necessary:
- #include <ompl/control/SpaceInformation.h>
- #include <ompl/base/spaces/RealVectorStateSpace.h>
- #include <ompl/control/ODESolver.h>
- #include <ompl/control/spaces/RealVectorControlSpace.h>
- #include <ompl/control/SimpleSetup.h>
- #include <ompl/config.h>
+#include <ompl/control/SpaceInformation.h>
+#include <ompl/base/spaces/RealVectorStateSpace.h>
+#include <ompl/control/ODESolver.h>
+#include <ompl/control/spaces/RealVectorControlSpace.h>
+#include <ompl/control/SimpleSetup.h>
+#include <ompl/config.h>
+
+//need includes for the planners too!
+#include <ompl/control/planners/rrt/RRT.h>
+#include <ompl/control/planners/kpiece/KPIECE1.h>
 
 // Your projection for the pendulum
 class PendulumProjection : public ompl::base::ProjectionEvaluator
@@ -97,24 +101,26 @@ ompl::control::SimpleSetupPtr createPendulum(double torque)
     cspace->setBounds(cbounds);
     
     //initialize our simple setup class:
-    //TODO: needs to be of type SimpleSetupPtr when returning, investigate how to do this
-    ompl::control::SimpleSetup ss(cspace);
+    
+    //create SimpleSetupPtr same as car system does:
+    ompl::control::SimpleSetupPtr ss = std::make_shared<ompl::control::SimpleSetup>(cspace);
 
     //TODO: figure out how to set the validity checker correctly
     //(following create car method as of now, pretty sure wrong)
-    ompl::base::SpaceInformationPtr si = ss.getSpaceInformation();
+    ompl::base::SpaceInformationPtr si = ss->getSpaceInformation();
 
     //TODO: removed obstacles from call bc get to assume environment with no obstacles, not sure if correct syntax
     //project spec says: "for the pendulum system, the validity checker must ensure the angular velocity of the pendulum is within the bounds that you specify"
+    //TODO: compiler error with linking bc not correct parameters for isValidStateSquare
     si->setStateValidityChecker(std::bind(isValidStatePoint, std::placeholders::_1));
     si->setup();
 
     //propogate with the ODE function
     //TODO: need to figure out how to pass torque into controls?
-    auto odeSolver(std::make_shared<ompl::control::ODEBasicSolver<>>(ss.getSpaceInformation(), &pendulumODE));
+    auto odeSolver(std::make_shared<ompl::control::ODEBasicSolver<>>(ss->getSpaceInformation(), &pendulumODE));
 
     //TODO: figure out how to set bounds here (more info in createCar comments)
-    ss.setStatePropagator(ompl::control::ODESolver::getStatePropagator(odeSolver));
+    ss->setStatePropagator(ompl::control::ODESolver::getStatePropagator(odeSolver));
 
     //TODO: confirm start and goal states okay for environment:
     ompl::base::ScopedState<ompl::base::RealVectorStateSpace> start(space);
@@ -128,9 +134,9 @@ ompl::control::SimpleSetupPtr createPendulum(double torque)
     goal->setYaw(0.0);
 
     //TODO: check goal if goal region/radius okay
-    ss.setStartAndGoalStates(start, goal, 0.05);
+    ss->setStartAndGoalStates(start, goal, 0.05);
 
-    ss.setup();
+    ss->setup();
 
     return ss;
 }
@@ -145,25 +151,27 @@ void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
     //TODO: need to verify if setting planner right:
     if (choice == 1)
     {
-        ss.setPlanner(new ompl::control::RRT(ss.getSpaceInformation()));
+        ss->setPlanner(std::make_shared<ompl::control::RRT>(ss->getSpaceInformation()));
     }
     if (choice == 2)
     {
-        ss.setPlanner(new ompl::control::KPIECE(ss.getSpaceInformation()));
-    }
-    if (choice == 3)
-    {
-        ss.setPlanner(new ompl::control::RGRRT(ss.getSpaceInformation()));
+        ss->setPlanner(std::make_shared<ompl::control::KPIECE1>(ss->getSpaceInformation()));
     }
 
+    //comment out RGRRT for now- wait until we implement bc it causes comiler errors rn
+    /*if (choice == 3)
+    {
+        ss->setPlanner(std::make_shared<ompl::control::RGRRT>(ss->getSpaceInformation()));
+    }*/
+
     //solve the problem:
-    base::PlannerStatus solved = ss.solve(10.0);
+    base::PlannerStatus solved = ss->solve(10.0);
 
     if (solved)
     {
         std::cout << "Found Solution:" << std::endl;
         //convert to geometric path so we can nicely print path as matrix
-        ss.getSolutionPath().asGeometric().printAsMatrix(std::cout);
+        ss->getSolutionPath().asGeometric().printAsMatrix(std::cout);
     }
     else
     {
