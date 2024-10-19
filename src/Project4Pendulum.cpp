@@ -65,14 +65,14 @@ void pendulumODE(const ompl::control::ODESolver::StateType & q, const ompl::cont
     qdot[1] = ((-9.81)*(cos(q[0])) + torque)
 }
 
-ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
+ompl::control::SimpleSetupPtr createPendulum(double torque)
 {
     /*
        As of now, kept same as car create function, will need to adjust when
        we figure out how to correctly set up.
     */
 
-    //TODO: make sure state space correct! --> if pendulum is dot, R^2, if line, SE(2)
+    //TODO: make sure state space correct! --> if pendulum is dot, R^2, if line, SE(2)?
     //create pendulum's state space: R^2
     auto space(std::make_shared<ompl::base::RealVectorStateSpace>(2));
 
@@ -80,21 +80,20 @@ ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
     ompl::base::RealVectorBounds bounds(2);
     bounds.setLow(-10);
     bounds.setHigh(10);
-    
     space->setBounds(bounds);
 
     //anything below this is based off current implementation of createCar, if we make changes to that, will need to update here one too
     
     //control space setup:
-    auto cspace(std::make_shared<ompl::control::RealVectorControlSpace>(space, 2));
+    //TODO: verify we only need "1" for 1 control input, torque
+    auto cspace(std::make_shared<ompl::control::RealVectorControlSpace>(space, 1));
 
     //set control space bounds
-    //TODO: double check 
+    //TODO: double check that this is where we set the control input bounds (bounds are [-torque, torque])
 
-    ompl::base::RealVectorBounds cbounds(2);
-    cbounds.setLow(-0.3);
-    cbounds.setHigh(0.3);
-
+    ompl::base::RealVectorBounds cbounds(1);
+    cbounds.setLow(-torque);
+    cbounds.setHigh(torque);
     cspace->setBounds(cbounds);
     
     //initialize our simple setup class:
@@ -104,10 +103,14 @@ ompl::control::SimpleSetupPtr createPendulum(double /* torque */)
     //TODO: figure out how to set the validity checker correctly
     //(following create car method as of now, pretty sure wrong)
     ompl::base::SpaceInformationPtr si = ss.getSpaceInformation();
-    si->setStateValidityChecker(std::bind(isValidStatePoint, std::placeholders::_1, obstacles));
+
+    //TODO: removed obstacles from call bc get to assume environment with no obstacles, not sure if correct syntax
+    //project spec says: "for the pendulum system, the validity checker must ensure the angular velocity of the pendulum is within the bounds that you specify"
+    si->setStateValidityChecker(std::bind(isValidStatePoint, std::placeholders::_1));
     si->setup();
 
     //propogate with the ODE function
+    //TODO: need to figure out how to pass torque into controls?
     auto odeSolver(std::make_shared<ompl::control::ODEBasicSolver<>>(ss.getSpaceInformation(), &pendulumODE));
 
     //TODO: figure out how to set bounds here (more info in createCar comments)
@@ -151,7 +154,7 @@ void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
     if (choice == 3)
     {
         //TODO: make sure RG-RRT in 'right' format
-        ss.setPlanner(new ompl::control::RG-RRT(ss.getSpaceInformation()));
+        ss.setPlanner(new ompl::control::RGRRT(ss.getSpaceInformation()));
     }
 
     //solve the problem:
