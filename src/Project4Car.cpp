@@ -129,7 +129,6 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     ompl::base::RealVectorBounds bounds(2);
     bounds.setLow(-10);
     bounds.setHigh(10);
-    
     space->setBounds(bounds);
 
     //setting the control space up:
@@ -139,13 +138,12 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
 
     //set the control space bounds:
 
-    //TODO: figure out what the high and low bounds should be for the control space
     //TODO: see if need multiple high and low bounds for each dimension/variable in the control space
     //right now setting them to the numbers seen on the demo
+    //project spec says: "the car cannot source an arbitrarily large acceleration or angular velocity, you need to set bounds in the control space to ensure a dynamically feasible trajectory"
     ompl::base::RealVectorBounds cbounds(2);
     cbounds.setLow(-0.3);
     cbounds.setHigh(0.3);
-
     cspace->setBounds(cbounds);
 
     //set up our simple setup class:
@@ -168,14 +166,14 @@ ompl::control::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     //const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0);
     //const auto *rot = se2state->as<ob::SO2StateSpace::StateType>(1);
 
+    //project spec says: "you must verify that the velocity of the vehicle is within the bounds you set"
     si->setStateValidityChecker(std::bind(isValidStateSquare, std::placeholders::_1, 1, obstacles));
     si->setup();
 
-    //TODO: propogate with the ODE function
-
+    //use the odeSolver to propagate:
     auto odeSolver(std::make_shared<ompl::control::ODEBasicSolver<>>(ss.getSpaceInformation(), &carODE));
 
-    //TODO: need to change &KinematicCarPostIntegration, this is from the documentation demo and doesnt apply here
+    //TODO: investigate  &KinematicCarPostIntegration from demo!
     //it seems to be enforcing rotation constraints on the car
     //we probably want it to enforce constraints, but it is an optional feature, so removing for now
     //including the demo example commented out below:
@@ -213,7 +211,7 @@ void planCar(ompl::control::SimpleSetupPtr & ss, int choice)
     */
 
     //set the planner based on choice:
-    //TODO: need to verify if this is the correct method of doing so:
+    //TODO: need to verify if this is the correct method of setting the planners
     if (choice == 1)
     {
         ss.setPlanner(new ompl::control::RRT(ss.getSpaceInformation()));
@@ -224,8 +222,7 @@ void planCar(ompl::control::SimpleSetupPtr & ss, int choice)
     }
     if (choice == 3)
     {
-        //TODO: make sure RG-RRT in 'right' format
-        ss.setPlanner(new ompl::control::RG-RRT(ss.getSpaceInformation()));
+        ss.setPlanner(new ompl::control::RGRRT(ss.getSpaceInformation()));
     }
 
     //solve the problem:
