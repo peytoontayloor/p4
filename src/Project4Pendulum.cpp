@@ -81,12 +81,40 @@ void pendulumODE(const oc::ODESolver::StateType & q, const oc::Control * control
     qdot[1] = ((-9.81)*(cos(theta)) + torque)
 }
 
+// ADDED FUNCTION
+// Just like car setup except we don't need to check for obstacle collision since no obstacles
+// Still should check bounds though
+bool isValidStatePointPen(const ob::State *state, const oc::SpaceInformation *si, const std::vector<Rectangle>& obstacles)
+{
+    const auto *so2state = state->as<ob::SO2StateSpace::StateType>();
+    const auto *pos = so2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
+    const double x = pos[0];
+    const double y = pos[1];
+
+    // TODO: 10 is to be used as the basolute value of the rotational velocity limit --> I think this is within control, but should ask in OH
+    
+    // TODO: not sure if this is necessary since we don't need to call collision checker on pendulum?
+    return si->satisfiesBounds(state);
+
+}
+
+// ADDED FUNCTION
+void PostIntegration (const:: ob::State* state, const oc::Control* control, const double duration, ob::State *result)
+{
+    // Normalize orientation between 0 and 2*pi
+    // TODO: a little confused on how this works with an SO2 state space versus what we did for the cars SE(2)
+   ob::SO2StateSpace SO2;
+   SO2.enforceBounds(result->as<ob::SE2StateSpace::StateType>()->as<ob::SO2StateSpace::StateType>(1));
+}
+
 oc::SimpleSetupPtr createPendulum(double torque)
 {
     // Create pendulum's state space: SO(2)
+    // TODO: verify correct state space
     auto space(std::make_shared<ob::SO2StateSpace>());
     // TODO: check, I think we don't need to manually set bounds, since we never set theta bounds for SE(2)
     // hold up maybe ang velocity is also part of state space??
+    // ^^ I think it migh tbe part of the control space, but i am still iffy, we should ask in OH!
     
     //control space setup:
     //TODO: verify we only need "1" for 1 control input, torque
@@ -101,19 +129,18 @@ oc::SimpleSetupPtr createPendulum(double torque)
     // Create SimpleSetupPtr.
     oc::SimpleSetupPtr ss = std::make_shared<oc::SimpleSetup>(cspace);
 
-    //TODO: figure out how to set the validity checker correctly
-    //(following create car method as of now, pretty sure wrong)
     ob::SpaceInformationPtr si = ss->getSpaceInformation();
 
-    si->setStateValidityChecker(std::bind(isValidStatePoint, std::placeholders::_1));
-    si->setup();
+    // Fixing pendulum alidity checker to work like the car one:
+    // TODO: investigate if this is necessary?
+    ss->setStateValidityChecker([si, obstacles](const ob::State *state) {return isValidStatePointPen(state, si.get()); })
 
     //propogate with the ODE function
     //TODO: need to figure out how to pass torque into controls?
     auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss->getSpaceInformation(), &pendulumODE));
 
-    //TODO: figure out how to set bounds here (more info in createCar comments)
-    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
+    // Following same method as in car system
+    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &PostIntegration));
 
     //TODO: confirm start and goal states okay for environment:
     ob::ScopedState<ob::RealVectorStateSpace> start(space);

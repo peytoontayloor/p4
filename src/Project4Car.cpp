@@ -133,7 +133,8 @@ bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si
     const double x =  pos[0];
     const double y = pos[1];
 
-    // TODO: how to check that velocity is within bounds? currently state doesn't contain velocit yonly (x,y, theta)
+    // TODO: how to check that velocity is within bounds? currently state doesn't contain velocity only (x,y, theta)
+    // ^^ might be okay not doing it here, I think it is checked when the control space bounds are set, but we should double check!
     
     return  si->satisfiesBounds(state) && isValidStatePoint(x, y, obstacles);
 
@@ -141,7 +142,7 @@ bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si
 }
 
 // ADDED THIS FUNCTION
-void PostIntegration (const ob::State* /*state*/, const oc::Control* /*control*/, const double /*duration*/, ob::State *result)
+void PostIntegration (const ob::State* state, const oc::Control* control, const double duration, ob::State *result)
 {
     // Normalize orientation between 0 and 2*pi
     ob::SO2StateSpace SO2;
