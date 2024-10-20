@@ -84,7 +84,7 @@ void carODE(const oc::ODESolver::StateType & q, const oc::Control * control,
     // q = (x, y, theta, v), qdot = (xdot, ydot, w, vdot)
     qdot.resize(q.size(), 0);
 
-    // System dynamics of the car: qdot = (xdot, ydot, w, vdot) = (vcos(theta), vsin(theta), w, v)
+    // System dynamics: qdot = (xdot, ydot, w, vdot) = (vcos(theta), vsin(theta), w, v)
     qdot[0] = v * cos(theta);
     qdot[1] = v * sin(theta);
     qdot[2] = w;
@@ -133,11 +133,20 @@ bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si
     const double x =  pos[0];
     const double y = pos[1];
 
+    // TODO: how to check that velocity is within bounds? currently state doesn't contain velocit yonly (x,y, theta)
+    
     return  si->satisfiesBounds(state) && isValidStatePoint(x, y, obstacles);
 
     // return  si->satisfiesBounds(state) && isValidStatePoint(state, obstacles);
 }
 
+// ADDED THIS FUNCTION
+void PostIntegration (const ob::State* /*state*/, const oc::Control* /*control*/, const double /*duration*/, ob::State *result)
+{
+    // Normalize orientation between 0 and 2*pi
+    ob::SO2StateSpace SO2;
+    SO2.enforceBounds(result->as<ob::SE2StateSpace::StateType>()->as<ob::SO2StateSpace::StateType>(1));
+}
 
 /*
     Set up simple setup ptr for car.
@@ -169,7 +178,7 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     cbounds.setHigh(1, 5);
     cspace->setBounds(cbounds);
 
-    // Define simple ssetup ptr. 
+    // Create simple ssetup ptr. 
     oc::SimpleSetupPtr ss = std::make_shared<oc::SimpleSetup>(cspace);
 
     // Get the space information pointer from ss.
@@ -190,12 +199,8 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     // Use the odeSolver to propagate:
     auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss->getSpaceInformation(), &carODE));
 
-    //TODO: investigate  &KinematicCarPostIntegration from demo!
-    //it seems to be enforcing rotation constraints on the car
-    //we probably want it to enforce constraints, but it is an optional feature, so removing for now
-    //including the demo example commented out below:
-    //ss.setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &KinematicCarPostIntegration));
-    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
+    // Set propgator with post integration to enforce that theta is in [0, 2pi].
+    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver,  &PostIntegration));
   
     //TODO: check, Set start and goal states based on Project 4, Figure 2
     ob::ScopedState<ob::SE2StateSpace> start(space);

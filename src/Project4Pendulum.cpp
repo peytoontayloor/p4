@@ -16,6 +16,7 @@
 
 //includes from the demo documentation that I think are necessary:
 #include <ompl/control/SpaceInformation.h>
+#include <ompl/base/spaces/SO2StateSpace.h>
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/control/ODESolver.h>
 #include <ompl/control/spaces/RealVectorControlSpace.h>
@@ -26,11 +27,14 @@
 #include <ompl/control/planners/rrt/RRT.h>
 #include <ompl/control/planners/kpiece/KPIECE1.h>
 
+namespace ob = ompl::base;
+namespace oc = ompl::control;
+
 // Your projection for the pendulum
-class PendulumProjection : public ompl::base::ProjectionEvaluator
+class PendulumProjection : public ob::ProjectionEvaluator
 {
 public:
-    PendulumProjection(const ompl::base::StateSpace *space) : ProjectionEvaluator(space)
+    PendulumProjection(const ob::StateSpace *space) : ProjectionEvaluator(space)
     {
     }
 
@@ -40,16 +44,13 @@ public:
         return 0;
     }
 
-    void project(const ompl::base::State */* state */, Eigen::Ref<Eigen::VectorXd> /* projection */) const override
+    void project(const ob::State */* state */, Eigen::Ref<Eigen::VectorXd> /* projection */) const override
     {
         // TODO: Your projection for the pendulum
     }
 };
 
-void pendulumODE(const ompl::control::ODESolver::StateType & q, const ompl::control::Control * control,
-                 ompl::control::ODESolver::StateType & qdot)
-{
-    /*
+/*
         state of system q = (theta, w), theta is orientation of pendulum and w is rotational velocity
 
         torque is t (from main) -->might be a control input
@@ -57,78 +58,70 @@ void pendulumODE(const ompl::control::ODESolver::StateType & q, const ompl::cont
         gravity is roughly 9.81 per the project spec
 
         qdot = (w, -gcos(theta)+t)
-    */
+*/
+void pendulumODE(const oc::ODESolver::StateType & q, const oc::Control * control,
+                 oc::ODESolver::StateType & qdot)
+{
+    
+    // Retrieve control values: torque.
+    const double *u = controls->as<oc::RealVectorControlSpace::ControlType>()->values;
+    const double torque = u[0];
 
-    const double *controls = u->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
-    const double torque = controls[0];
+    // Retrieve current orientation: q[0] = theta, q[1] = w
+    theta = q[0]
+    w = q[1]
 
+    // Ensure qdot same size as q. Zero out all values. 
+    // q = (theta, w), qdot = (thetadot, wdot)
     qdot.resize(q.size(), 0);
 
-    //q[0] = theta, q[1] = w
-    qdot[0] = q[1]; //w
-    qdot[1] = ((-9.81)*(cos(q[0])) + torque)
+    // System dynamics: qdot = (thetadot, wdot) = (w, -gcos(theta) + torque)
+    //
+    qdot[0] = w
+    qdot[1] = ((-9.81)*(cos(theta)) + torque)
 }
 
-ompl::control::SimpleSetupPtr createPendulum(double torque)
+oc::SimpleSetupPtr createPendulum(double torque)
 {
-    /*
-       As of now, kept same as car create function, will need to adjust when
-       we figure out how to correctly set up.
-    */
-
-    //TODO: make sure state space correct! --> if pendulum is dot, R^2, if line, SE(2)?
-    //create pendulum's state space: R^2
-    auto space(std::make_shared<ompl::base::RealVectorStateSpace>(2));
-
-    //TODO: investigate if these are correct for the environment
-    ompl::base::RealVectorBounds bounds(2);
-    bounds.setLow(-10);
-    bounds.setHigh(10);
-    space->setBounds(bounds);
-
-    //anything below this is based off current implementation of createCar, if we make changes to that, will need to update here one too
+    // Create pendulum's state space: SO(2)
+    auto space(std::make_shared<ob::SO2StateSpace>());
+    // TODO: check, I think we don't need to manually set bounds, since we never set theta bounds for SE(2)
+    // hold up maybe ang velocity is also part of state space??
     
     //control space setup:
     //TODO: verify we only need "1" for 1 control input, torque
-    auto cspace(std::make_shared<ompl::control::RealVectorControlSpace>(space, 1));
+    auto cspace(std::make_shared<oc::RealVectorControlSpace>(space, 1));
 
-    //set control space bounds
-    //TODO: double check that this is where we set the control input bounds (bounds are [-torque, torque])
-
-    ompl::base::RealVectorBounds cbounds(1);
-    cbounds.setLow(-torque);
+    // Set control space bounds.
+    ob::RealVectorBounds cbounds(1);
+    cbounds.setLow(-1 * torque);
     cbounds.setHigh(torque);
     cspace->setBounds(cbounds);
     
-    //initialize our simple setup class:
-    
-    //create SimpleSetupPtr same as car system does:
-    ompl::control::SimpleSetupPtr ss = std::make_shared<ompl::control::SimpleSetup>(cspace);
+    // Create SimpleSetupPtr.
+    oc::SimpleSetupPtr ss = std::make_shared<oc::SimpleSetup>(cspace);
 
     //TODO: figure out how to set the validity checker correctly
     //(following create car method as of now, pretty sure wrong)
-    ompl::base::SpaceInformationPtr si = ss->getSpaceInformation();
+    ob::SpaceInformationPtr si = ss->getSpaceInformation();
 
-    //TODO: removed obstacles from call bc get to assume environment with no obstacles, not sure if correct syntax
-    //project spec says: "for the pendulum system, the validity checker must ensure the angular velocity of the pendulum is within the bounds that you specify"
-    //TODO: compiler error with linking bc not correct parameters for isValidStateSquare
     si->setStateValidityChecker(std::bind(isValidStatePoint, std::placeholders::_1));
     si->setup();
 
     //propogate with the ODE function
     //TODO: need to figure out how to pass torque into controls?
-    auto odeSolver(std::make_shared<ompl::control::ODEBasicSolver<>>(ss->getSpaceInformation(), &pendulumODE));
+    auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss->getSpaceInformation(), &pendulumODE));
 
     //TODO: figure out how to set bounds here (more info in createCar comments)
-    ss->setStatePropagator(ompl::control::ODESolver::getStatePropagator(odeSolver));
+    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
 
     //TODO: confirm start and goal states okay for environment:
-    ompl::base::ScopedState<ompl::base::RealVectorStateSpace> start(space);
+    ob::ScopedState<ob::RealVectorStateSpace> start(space);
     start->setX(-5.0);
     start->setY(0.0);
     start->setYaw(0.0);
   
-    ompl::base::ScopedState<ompl::base::RealVectorStateSpace> goal(space);
+    ob::ScopedState<ob::RealVectorStateSpace> goal(space);
     goal->setX(2.0);
     goal->setY(0.0);
     goal->setYaw(0.0);
@@ -141,7 +134,7 @@ ompl::control::SimpleSetupPtr createPendulum(double torque)
     return ss;
 }
 
-void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
+void planPendulum(oc::SimpleSetupPtr & ss, int choice)
 {
     /*
         kept this one the same as the car plan function
@@ -150,17 +143,17 @@ void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
     //set the planner based on choice:
     if (choice == 1)
     {
-        ss->setPlanner(std::make_shared<ompl::control::RRT>(ss->getSpaceInformation()));
+        ss->setPlanner(std::make_shared<oc::RRT>(ss->getSpaceInformation()));
     }
     if (choice == 2)
     {
-        ss->setPlanner(std::make_shared<ompl::control::KPIECE1>(ss->getSpaceInformation()));
+        ss->setPlanner(std::make_shared<oc::KPIECE1>(ss->getSpaceInformation()));
     }
 
     //comment out RGRRT for now- wait until we implement bc it causes comiler errors rn
     /*if (choice == 3)
     {
-        ss->setPlanner(std::make_shared<ompl::control::RGRRT>(ss->getSpaceInformation()));
+        ss->setPlanner(std::make_shared<oc::RGRRT>(ss->getSpaceInformation()));
     }*/
 
     //solve the problem:
@@ -178,7 +171,7 @@ void planPendulum(ompl::control::SimpleSetupPtr & ss, int choice)
     }
 }
 
-void benchmarkPendulum(ompl::control::SimpleSetupPtr &/* ss */)
+void benchmarkPendulum(oc::SimpleSetupPtr &/* ss */)
 {
     // TODO: Do some benchmarking for the pendulum
 }
@@ -209,7 +202,7 @@ int main(int /* argc */, char ** /* argv */)
     double torques[] = {3., 5., 10.};
     double torque = torques[which - 1];
 
-    ompl::control::SimpleSetupPtr ss = createPendulum(torque);
+    oc::SimpleSetupPtr ss = createPendulum(torque);
 
     // Planning
     if (choice == 1)
