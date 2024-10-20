@@ -129,9 +129,7 @@ void makeStreet(std::vector<Rectangle> & obstacles)
 bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si, const std::vector<Rectangle>& obstacles)
 {
     const auto *se2state = state->as<ob::SE2StateSpace::StateType>();
-    const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0);
-
-    // TODO: don't understand why this is not working...these operators are defined in <ompl/base/spaces/RealVectorStateSpace.h>
+    const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
     const double x =  pos[0];
     const double y = pos[1];
 
@@ -218,18 +216,17 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     return ss;
 }
 
+/*
+    choice is what planner to choose:
+    if 1 --> RRT
+    if 2 --> KPIECE
+    if 3 --> RG-RRT
+
+    given a simple setup pointer (ss) and a planner (choice), set up a motion planning problem
+*/
 void planCar(oc::SimpleSetupPtr & ss, int choice)
 {
-    /*
-        choice is what planner to choose:
-        if 1 --> RRT
-        if 2 --> KPIECE
-        if 3 --> RG-RRT
-
-        given a simple setup pointer (ss) and a planner (choice), set up a motion planning problem
-    */
-
-    //set the planner based on choice:
+    // Set the planner based on choice.
     if (choice == 1)
     {
         //setPlanner requires a PlannerPtr not just a Planner
@@ -249,13 +246,14 @@ void planCar(oc::SimpleSetupPtr & ss, int choice)
         ss->setPlanner(std::make_shared<oc::RGRRT>(ss->getSpaceInformation()));
     }*/
 
-    //solve the problem:
+    // Solve the problem.
     ob::PlannerStatus solved = ss->solve(10.0);
 
     if (solved)
     {
         std::cout << "Found Solution:" << std::endl;
-        //convert to geometric path so we can nicely print path as matrix
+        
+        // Convert to geometric path so we can nicely print path as matrix.
         ss->getSolutionPath().asGeometric().printAsMatrix(std::cout);
     }
     else
