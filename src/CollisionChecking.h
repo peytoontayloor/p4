@@ -31,7 +31,10 @@ bool lineLineIntersection(const Point2D& p1, const Point2D& p2, const Point2D& q
 AABB rectangleToAABB(const Rectangle &obstacle);
 
 // Tests if state is valid (for a point robot)
-bool isValidStatePoint(const ompl::base::State* state, const std::vector<Rectangle>& obstacles);
+// bool isValidStatePoint(const ompl::base::State* state, const std::vector<Rectangle>& obstacles);
+
+// TODO: i added the signature below (from .cpp)!! (i'm not sure if we're supposed to modify this file at all...)
+bool isValidStatePoint(double x, double y, const std::vector<Rectangle>& obstacles);
 
 // Tests if state is valid (for a square robot)
 bool isValidStateSquare(const ompl::base::State* state, double sideLen, const std::vector<Rectangle>& obstacles);
