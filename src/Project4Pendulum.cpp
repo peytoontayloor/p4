@@ -86,11 +86,8 @@ void pendulumODE(const oc::ODESolver::StateType & q, const oc::Control * control
 // Still should check bounds though
 bool isValidStatePointPen(const ob::State *state, const oc::SpaceInformation *si)
 {
-    // TODO: 10 is to be used as the basolute value of the rotational velocity limit --> I think this is within control, but should ask in OH
-    
-    // TODO: not sure if this function is necessary since we don't need to call collision checker on pendulum?
+    // No obstacles, just need to check the bounds we set when setting up the space
     return si->satisfiesBounds(state);
-
 }
 
 // ADDED FUNCTION
@@ -100,31 +97,36 @@ void PostIntegration (const:: ob::State* /*state*/, const oc::Control* /*control
     // TODO: a little confused on how this works with an SO2 state space versus what we did for the cars SE(2)
    //ob::SO2StateSpace SO2;
    //SO2.enforceBounds(result->as<ob::SO2StateSpace::StateType>(1));
+   // Extract the SO2 space and normalize the orientation: 
+   const auto *so2state = state->as<ob::SO2StateSpace::StateType>();
+   so2state.enforceBounds(result->as<ob::SO2StateSpace::Stateype>(1));
+   
 }
 
 oc::SimpleSetupPtr createPendulum(double torque)
 {
-    // Create pendulum's state space: SO(2)
-    auto space(std::make_shared<ob::SO2StateSpace>());
+    // Create pendulum's state space: SO(2) X R
+    //auto space(std::make_shared<ob::SO2StateSpace>());
 
-    //velocity is r, make composit space !
-    // TODO: check, I think we don't need to manually set bounds, since we never set theta bounds for SE(2)
-    // hold up maybe ang velocity is also part of state space??
-    // ^^ I think it migh tbe part of the control space, but i am still iffy, we should ask in OH!
-
-    // setting bounds for state space:
-    ob::RealVectorBounds bounds(2);
+    const auto so2 = std::make_shared<ob::So2StateSpace>();
+    const auto r = std::make_shared<ob::RealVectorStateSpace>(1);
+    const auto space = so2 + r;
+    
+    // setting bounds for so2 state space:
+    ob::RealVectorBounds so2bounds(1);
     // theta
     bounds.setLow(-pi/2);
     bounds.setHigh(pi/2);
-    // rotational velocity
-    bounds.setLow(-10);
-    bounds.setHigh(10);
+    so2->setBounds(so2bounds);
 
-    space->setBounds(bounds);
+    // setting bounds for r state space:
+    ob::RealVectorBounds rbounds(1);
+    // rotational velocity
+    rbounds.setLow(-10);
+    rbounds.setHigh(10);
+    r->setBounds(rbounds);
     
     //control space setup:
-    //TODO: verify we only need "1" for 1 control input, torque
     auto cspace(std::make_shared<oc::RealVectorControlSpace>(space, 1));
 
     // Set control space bounds.
@@ -138,20 +140,13 @@ oc::SimpleSetupPtr createPendulum(double torque)
 
     oc::SpaceInformationPtr si = ss->getSpaceInformation();
 
-    // Fixing pendulum alidity checker to work similar the car one:
-    // TODO: investigate if this is necessary? --> no obstacles only need to check rotational velocity
+    // Fixing pendulum alidity checker to work similar the car one
     ss->setStateValidityChecker([si](const ob::State *state) {return isValidStatePointPen(state, si.get()); });
 
     //propogate with the ODE function
-    //TODO: need to figure out how to pass torque into controls?
     auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss->getSpaceInformation(), &pendulumODE));
 
-    // Removed post integration for now bc could not figure out, left the empty function
-    // TODO: if don't use propogate, remove function!
-    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
-
-    //TODO: confirm start and goal states okay for environment:
-    // Pretty sure start and goal states might just be different angles the pendulum is at?
+    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &PostIntegration));
 
     // UPDATE: I think the syntax is something to do with value? per RealVectorStateSpace.h:
     //https://ompl.kavrakilab.org/RealVectorStateSpace_8h_source.html
