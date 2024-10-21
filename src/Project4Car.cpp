@@ -159,6 +159,10 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     // Create car's state space.
     auto space(std::make_shared<ob::SE2StateSpace>());
 
+    const auto se2 = ob:SE2StateSpace();
+    const auto r = ob::RealVectorStateSpace(1);
+    const auto composite = se2 + r;
+
     // Set R^2 bounds.
     // TODO: do we need to set theta and forward velocity here? by setting the bounds?, could maybe increase the dimension of real vector bounds and set those here too? 
 
