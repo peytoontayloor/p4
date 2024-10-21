@@ -64,12 +64,12 @@ void pendulumODE(const oc::ODESolver::StateType & q, const oc::Control * control
 {
     
     // Retrieve control values: torque.
-    const double *u = controls->as<oc::RealVectorControlSpace::ControlType>()->values;
+    const double *u = control->as<oc::RealVectorControlSpace::ControlType>()->values;
     const double torque = u[0];
 
     // Retrieve current orientation: q[0] = theta, q[1] = w
-    theta = q[0]
-    w = q[1]
+    const double theta = q[0];
+    const double w = q[1];
 
     // Ensure qdot same size as q. Zero out all values. 
     // q = (theta, w), qdot = (thetadot, wdot)
@@ -77,40 +77,34 @@ void pendulumODE(const oc::ODESolver::StateType & q, const oc::Control * control
 
     // System dynamics: qdot = (thetadot, wdot) = (w, -gcos(theta) + torque)
     //
-    qdot[0] = w
-    qdot[1] = ((-9.81)*(cos(theta)) + torque)
+    qdot[0] = w;
+    qdot[1] = ((-9.81)*(cos(theta)) + torque);
 }
 
 // ADDED FUNCTION
 // Just like car setup except we don't need to check for obstacle collision since no obstacles
 // Still should check bounds though
-bool isValidStatePointPen(const ob::State *state, const oc::SpaceInformation *si, const std::vector<Rectangle>& obstacles)
+bool isValidStatePointPen(const ob::State *state, const oc::SpaceInformation *si)
 {
-    const auto *so2state = state->as<ob::SO2StateSpace::StateType>();
-    const auto *pos = so2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
-    const double x = pos[0];
-    const double y = pos[1];
-
     // TODO: 10 is to be used as the basolute value of the rotational velocity limit --> I think this is within control, but should ask in OH
     
-    // TODO: not sure if this is necessary since we don't need to call collision checker on pendulum?
+    // TODO: not sure if this function is necessary since we don't need to call collision checker on pendulum?
     return si->satisfiesBounds(state);
 
 }
 
 // ADDED FUNCTION
-void PostIntegration (const:: ob::State* state, const oc::Control* control, const double duration, ob::State *result)
+void PostIntegration (const:: ob::State* /*state*/, const oc::Control* /*control*/, const double /*duration*/, ob::State /**result*/)
 {
     // Normalize orientation between 0 and 2*pi
     // TODO: a little confused on how this works with an SO2 state space versus what we did for the cars SE(2)
-   ob::SO2StateSpace SO2;
-   SO2.enforceBounds(result->as<ob::SE2StateSpace::StateType>()->as<ob::SO2StateSpace::StateType>(1));
+   //ob::SO2StateSpace SO2;
+   //SO2.enforceBounds(result->as<ob::SO2StateSpace::StateType>(1));
 }
 
 oc::SimpleSetupPtr createPendulum(double torque)
 {
     // Create pendulum's state space: SO(2)
-    // TODO: verify correct state space
     auto space(std::make_shared<ob::SO2StateSpace>());
     // TODO: check, I think we don't need to manually set bounds, since we never set theta bounds for SE(2)
     // hold up maybe ang velocity is also part of state space??
@@ -129,29 +123,35 @@ oc::SimpleSetupPtr createPendulum(double torque)
     // Create SimpleSetupPtr.
     oc::SimpleSetupPtr ss = std::make_shared<oc::SimpleSetup>(cspace);
 
-    ob::SpaceInformationPtr si = ss->getSpaceInformation();
+    oc::SpaceInformationPtr si = ss->getSpaceInformation();
 
-    // Fixing pendulum alidity checker to work like the car one:
-    // TODO: investigate if this is necessary?
-    ss->setStateValidityChecker([si, obstacles](const ob::State *state) {return isValidStatePointPen(state, si.get()); })
+    // Fixing pendulum alidity checker to work similar the car one:
+    // TODO: investigate if this is necessary? --> no obstacles only need to check rotational velocity
+    ss->setStateValidityChecker([si](const ob::State *state) {return isValidStatePointPen(state, si.get()); });
 
     //propogate with the ODE function
     //TODO: need to figure out how to pass torque into controls?
     auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss->getSpaceInformation(), &pendulumODE));
 
-    // Following same method as in car system
-    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &PostIntegration));
+    // Removed post integration for now bc could not figure out, left the empty function
+    // TODO: if don't use propogate, remove function!
+    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
 
     //TODO: confirm start and goal states okay for environment:
+    // Pretty sure start and goal states might just be different angles the pendulum is at?
+
+    // UPDATE: I think the syntax is something to do with value? per RealVectorStateSpace.h:
+    //https://ompl.kavrakilab.org/RealVectorStateSpace_8h_source.html
+
+    // TODO: cannot figure out actual syntax for it
+    
     ob::ScopedState<ob::RealVectorStateSpace> start(space);
-    start->setX(-5.0);
-    start->setY(0.0);
-    start->setYaw(0.0);
+    //start->values(0.0);
   
     ob::ScopedState<ob::RealVectorStateSpace> goal(space);
-    goal->setX(2.0);
-    goal->setY(0.0);
-    goal->setYaw(0.0);
+    //end pose pi/2 per Figure 1
+    // TODO: not sure how to get pi in c++ lol
+    //goal->values(3.14/2);
 
     //TODO: check goal if goal region/radius okay
     ss->setStartAndGoalStates(start, goal, 0.05);
@@ -184,7 +184,7 @@ void planPendulum(oc::SimpleSetupPtr & ss, int choice)
     }*/
 
     //solve the problem:
-    base::PlannerStatus solved = ss->solve(10.0);
+    ob::PlannerStatus solved = ss->solve(10.0);
 
     if (solved)
     {

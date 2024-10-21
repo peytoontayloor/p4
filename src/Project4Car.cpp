@@ -142,7 +142,7 @@ bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si
 }
 
 // ADDED THIS FUNCTION
-void PostIntegration (const ob::State* state, const oc::Control* control, const double duration, ob::State *result)
+void PostIntegration (const ob::State* /*state*/, const oc::Control* /*control*/, const double /*duration*/, ob::State *result)
 {
     // Normalize orientation between 0 and 2*pi
     ob::SO2StateSpace SO2;
