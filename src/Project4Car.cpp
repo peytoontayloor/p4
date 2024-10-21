@@ -127,18 +127,15 @@ void makeStreet(std::vector<Rectangle> & obstacles)
 // Intersect the point (x,y) with the set of rectangles. If the point lies outside of all obstacles 
 // and velocity/acceleration within cspace bounds, return true.
 bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si, const std::vector<Rectangle>& obstacles)
-{
+{ 
     const auto *se2state = state->as<ob::SE2StateSpace::StateType>();
     const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
     const double x =  pos[0];
     const double y = pos[1];
 
-    // TODO: how to check that velocity is within bounds? currently state doesn't contain velocity only (x,y, theta)
-    // ^^ might be okay not doing it here, I think it is checked when the control space bounds are set, but we should double check!
-    
+    // Checks if x, y, theta, and velocity are within set bounds and checks for obstacle collision
     return  si->satisfiesBounds(state) && isValidStatePoint(x, y, obstacles);
 
-    // return  si->satisfiesBounds(state) && isValidStatePoint(state, obstacles);
 }
 
 // ADDED THIS FUNCTION
@@ -157,33 +154,35 @@ void PostIntegration (const ob::State* /*state*/, const oc::Control* /*control*/
 oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
 {
     // Create car's state space.
-    auto space(std::make_shared<ob::SE2StateSpace>());
+    //auto space(std::make_shared<ob::SE2StateSpace>());
 
-    const auto se2 = ob:SE2StateSpace();
-    const auto r = ob::RealVectorStateSpace(1);
-    const auto composite = se2 + r;
+    const auto se2 = std::make_shared<ob::SE2StateSpace>();
+    const auto r = std::make_shared<ob::RealVectorStateSpace>(1);
+    const auto space = se2 + r;
 
-    // Set R^2 bounds.
-    // TODO: do we need to set theta and forward velocity here? by setting the bounds?, could maybe increase the dimension of real vector bounds and set those here too? 
-
-    //ob::RealVectorBounds bounds(2);
-    ob::RealVectorBounds bounds(4);
-    // x
-    bounds.setLow(0, -5);
-    bounds.setHigh(0, 5);
-    // y
-    bounds.setLow(1, -10);
-    bounds.setHigh(1, 10);
-    // theta
-    // VERIFY THIS (not sure how to write pi lol)
-    bounds.setLow(-pi/2)
-    bounds.setHigh(pi/2)
-    // forward velocity (v)
-    // NEED BOUNDS
-    bounds.setLow();
-    bounds.setHigh();
-    space->setBounds(bounds);
     
+    // Set bounds to 3, need to set the bounds for each state space individually
+    // SE(2) bounds:
+    ob::RealVectorBounds se2bounds(3);
+    // x
+    se2bounds.setLow(0, -5);
+    se2bounds.setHigh(0, 5);
+    // y
+    se2bounds.setLow(1, -10);
+    se2bounds.setHigh(1, 10);
+    // theta
+    // TODO: might not be necessary?
+    se2bounds.setLow(-pi/2)
+    se2bounds.setHigh(pi/2)
+    se2->setBounds(se2bounds);
+
+    //R bounds:
+    ob::RealVectorBounds rbounds(1);
+    // forward velocity
+    // TODO: find what these values should actually be
+    rbounds.setLow()
+    rbounds.setHigh()
+    r->setBounds(rbounds);
 
     // Create a control space.
     auto cspace(std::make_shared<oc::RealVectorControlSpace>(space, 2));
@@ -204,14 +203,6 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     oc::SpaceInformationPtr si = ss->getSpaceInformation();
 
     // Set validity checker for point car
-
-    // TODO: ask at OH, don't understand why the velow doesn't work when the it did in p3
-    // p4: ss->setStateValidityChecker(std::bind(isValidStatePointCar, std::placeholders::_1, si, obstacles));
-    // p3: si->setStateValidityChecker(std::bind(isValidStatePoint, std::placeholders::_1, obstacles));
-    
-    // TODO: ask at OH, should we use si.get() to access the raw pointer? func signature of isValid in demo
-    // has a raw pointer param type, however, we creaded a shared si pointer due to the return type of createCar
-
     ss->setStateValidityChecker(
          [si, obstacles](const ob::State *state) { return isValidStatePointCar(state, si.get(), obstacles); });
 

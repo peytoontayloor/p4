@@ -106,6 +106,8 @@ oc::SimpleSetupPtr createPendulum(double torque)
 {
     // Create pendulum's state space: SO(2)
     auto space(std::make_shared<ob::SO2StateSpace>());
+
+    //velocity is r, make composit space !
     // TODO: check, I think we don't need to manually set bounds, since we never set theta bounds for SE(2)
     // hold up maybe ang velocity is also part of state space??
     // ^^ I think it migh tbe part of the control space, but i am still iffy, we should ask in OH!
