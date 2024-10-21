@@ -109,6 +109,17 @@ oc::SimpleSetupPtr createPendulum(double torque)
     // TODO: check, I think we don't need to manually set bounds, since we never set theta bounds for SE(2)
     // hold up maybe ang velocity is also part of state space??
     // ^^ I think it migh tbe part of the control space, but i am still iffy, we should ask in OH!
+
+    // setting bounds for state space:
+    ob::RealVectorBounds bounds(2);
+    // theta
+    bounds.setLow(-pi/2);
+    bounds.setHigh(pi/2);
+    // rotational velocity
+    bounds.setLow(-10);
+    bounds.setHigh(10);
+
+    space->setBounds(bounds);
     
     //control space setup:
     //TODO: verify we only need "1" for 1 control input, torque
