@@ -163,7 +163,7 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     
     // Set bounds to 3, need to set the bounds for each state space individually
     // SE(2) bounds:
-    ob::RealVectorBounds se2bounds(3);
+    ob::RealVectorBounds se2bounds(2);
     // x
     se2bounds.setLow(0, -5);
     se2bounds.setHigh(0, 5);
@@ -171,9 +171,9 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     se2bounds.setLow(1, -10);
     se2bounds.setHigh(1, 10);
     // theta
-    // TODO: might not be necessary?
-    se2bounds.setLow(-pi/2)
-    se2bounds.setHigh(pi/2)
+    // TODO: don't need to set theta I think!
+    //se2bounds.setLow(-pi/2)
+    //se2bounds.setHigh(pi/2)
     se2->setBounds(se2bounds);
 
     //R bounds:

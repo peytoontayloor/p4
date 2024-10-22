@@ -94,9 +94,6 @@ bool isValidStatePointPen(const ob::State *state, const oc::SpaceInformation *si
 void PostIntegration (const:: ob::State* /*state*/, const oc::Control* /*control*/, const double /*duration*/, ob::State /**result*/)
 {
     // Normalize orientation between 0 and 2*pi
-    // TODO: a little confused on how this works with an SO2 state space versus what we did for the cars SE(2)
-   //ob::SO2StateSpace SO2;
-   //SO2.enforceBounds(result->as<ob::SO2StateSpace::StateType>(1));
    // Extract the SO2 space and normalize the orientation: 
    const auto *so2state = state->as<ob::SO2StateSpace::StateType>();
    so2state.enforceBounds(result->as<ob::SO2StateSpace::Stateype>(1));
@@ -108,16 +105,9 @@ oc::SimpleSetupPtr createPendulum(double torque)
     // Create pendulum's state space: SO(2) X R
     //auto space(std::make_shared<ob::SO2StateSpace>());
 
-    const auto so2 = std::make_shared<ob::So2StateSpace>();
+    const auto so2 = std::make_shared<ob::SO2StateSpace>();
     const auto r = std::make_shared<ob::RealVectorStateSpace>(1);
     const auto space = so2 + r;
-    
-    // setting bounds for so2 state space:
-    ob::RealVectorBounds so2bounds(1);
-    // theta
-    bounds.setLow(-pi/2);
-    bounds.setHigh(pi/2);
-    so2->setBounds(so2bounds);
 
     // setting bounds for r state space:
     ob::RealVectorBounds rbounds(1);
@@ -148,18 +138,13 @@ oc::SimpleSetupPtr createPendulum(double torque)
 
     ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &PostIntegration));
 
-    // UPDATE: I think the syntax is something to do with value? per RealVectorStateSpace.h:
-    //https://ompl.kavrakilab.org/RealVectorStateSpace_8h_source.html
-
-    // TODO: cannot figure out actual syntax for it
+    // TODO: set the start and goal states, not of RealVectorStateSpace, I think CompoundStateSpace (verify)
     
-    ob::ScopedState<ob::RealVectorStateSpace> start(space);
-    //start->values(0.0);
+    ob::ScopedState<ob::CompoundStateSpace> start(space);
+    //start->???
   
-    ob::ScopedState<ob::RealVectorStateSpace> goal(space);
-    //end pose pi/2 per Figure 1
-    // TODO: not sure how to get pi in c++ lol
-    //goal->values(3.14/2);
+    ob::ScopedState<ob::CompoundStateSpace> goal(space);
+    //goal->???
 
     //TODO: check goal if goal region/radius okay
     ss->setStartAndGoalStates(start, goal, 0.05);
