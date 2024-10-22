@@ -45,23 +45,24 @@ public:
 
     unsigned int getDimension() const override
     {
-        // TODO: The dimension of your projection for the car
         // Following the demo at:
         //https://ompl.kavrakilab.org/projections.html
 
         // Here we want to say what dimension are going to project the car into
-
-        return 0;
+        return 2;
     }
 
-    void project(const ob::State * /* state */, Eigen::Ref<Eigen::VectorXd> /* projection */) const override
+    void project(const ob::State * state, Eigen::Ref<Eigen::VectorXd> projection) const override
     {
-        // TODO: Your projection for the car
+        // Projecting x from se2 into pos0 and y from se2 into pos1 
 
-        // Need to get our current state into the projection version
-        // So need a way to turn SE2 X R into something with the ammount of dimensions specified above
+        const auto *cmpd = state->as<ob::CompoundStateSpace::StateType>();
+        const auto *se2state = cmpd->as<ob::SE2StateSpace::StateType>(0);
+        const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
 
-        // TO DO: asking in office hours about projection with compound state spaces
+        projection(0) = pos[0];
+        projection(1) = pos[1];
+
     }
 };
 
@@ -198,8 +199,8 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     ob::RealVectorBounds rbounds(1);
     // forward velocity
     // TODO: find what these values should actually be for purpose of compiling, set as 1 (not sure AT ALL if correct)
-    rbounds.setLow(-1);
-    rbounds.setHigh(1);
+    rbounds.setLow(-10);
+    rbounds.setHigh(10);
     r->setBounds(rbounds);
 
     // Create a control space.
@@ -235,14 +236,14 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     start[0] = -4.5; // x
     start[1] = -5.5; // y
     start[2] = 0.0; // yaw 
-    start[3] = 0.0; //v
+    start[3] = 0.0; // v
 
 
     ob::ScopedState<ob::CompoundStateSpace> goal(space);
     goal[0] = 4.5; // x
     goal[1] = 5.0; // y
     goal[2] = 0.0; // yaw 
-    goal[3] = 0.0; //v
+    goal[3] = 0.0; // v
   
     
     //TODO: verify goal region radius okay, this is from demo again so not sure if applies to our environment

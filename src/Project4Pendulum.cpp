@@ -40,13 +40,21 @@ public:
 
     unsigned int getDimension() const override
     {
-        // TODO: The dimension of your projection for the pendulum
-        return 0;
+        // NOTE: from office hours, he mentioned to try the 1 dimensional projection, but if doesnt work,
+        // since our dimensions are already low, just do a direct 2 to 2 mapping :)
+
+        return 1;
     }
 
-    void project(const ob::State */* state */, Eigen::Ref<Eigen::VectorXd> /* projection */) const override
+    void project(const ob::State * state, Eigen::Ref<Eigen::VectorXd> projection) const override
     {
-        // TODO: Your projection for the pendulum
+        // Refer to not in above function if this doesnt work 
+        const auto *cmpd = state->as<ob::CompoundStateSpace::StateType>();
+        const auto *so2state = cmpd->as<ob::SO2StateSpace::StateType>(0);
+        const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
+
+        // Ideally, pos[0] is theta
+        projection(0) = pos[0];
     }
 };
 
@@ -91,6 +99,7 @@ bool isValidStatePointPen(const ob::State *state, const oc::SpaceInformation *si
 }
 
 // ADDED FUNCTION
+
 // TODO: fix post integration, not correct!
 // Something is wrong with how we access the so2 state space, couldnt figure it out, removed from call in createCar too so that could compile
 /*
@@ -141,6 +150,7 @@ oc::SimpleSetupPtr createPendulum(double torque)
     //propogate with the ODE function
     auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss->getSpaceInformation(), &pendulumODE));
 
+    // TODO: Fix post-integration
     //ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &PostIntegration));
     ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
 
