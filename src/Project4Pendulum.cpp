@@ -91,15 +91,19 @@ bool isValidStatePointPen(const ob::State *state, const oc::SpaceInformation *si
 }
 
 // ADDED FUNCTION
-void PostIntegration (const:: ob::State* state, const oc::Control* /*control*/, const double /*duration*/, ob::State *result)
+// TODO: fix post integration, not correct!
+// Something is wrong with how we access the so2 state space, couldnt figure it out, removed from call in createCar too so that could compile
+/*
+void PostIntegration (const:: ob::State* state, const oc::Control* control, const double duration, ob::State *result)
 {
     // Normalize orientation between 0 and 2*pi
-   // Extract the SO2 space and normalize the orientation: 
-   // Pointer in this case bc of how we are accessing so2
-   // TODO: fix post integration, not correct!
-   const auto *so2state = state->as<ob::SO2StateSpace::StateType>(0);
-   so2state->enforceBounds(result->as<ob::SO2StateSpace::StateType>(1));
+    // Extract the SO2 space and normalize the orientation: 
+    // Pointer in this case bc of how we are accessing so2
+    // TODO: fix post integration, not correct! 
+    const auto *so2state = state->as<ob::SO2StateSpace::StateType>(0);
+    so2state->enforceBounds(result->as<ob::SO2StateSpace::StateType>(1));
 }
+*/
 
 oc::SimpleSetupPtr createPendulum(double torque)
 {
@@ -137,7 +141,8 @@ oc::SimpleSetupPtr createPendulum(double torque)
     //propogate with the ODE function
     auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss->getSpaceInformation(), &pendulumODE));
 
-    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &PostIntegration));
+    //ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &PostIntegration));
+    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
 
     // TODO: set the start and goal states, not of RealVectorStateSpace, I think CompoundStateSpace (verify)
     

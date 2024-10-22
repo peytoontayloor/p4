@@ -128,10 +128,18 @@ void makeStreet(std::vector<Rectangle> & obstacles)
 // and velocity/acceleration within cspace bounds, return true.
 bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si, const std::vector<Rectangle>& obstacles)
 { 
-    const auto *se2state = state->as<ob::SE2StateSpace::StateType>();
+    // TODO: treating just as SE2, need to account for it being compound state, verify did correctly!
+    const auto *cmpd = state->as<ob::CompoundStateSpace::StateType.();
+    const auto *se2state = cmpd->as<ob::SE2StateSpace::StateType>(0);
     const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
     const double x =  pos[0];
     const double y = pos[1];
+
+    // old method with just SE2StateSpace:
+    /*const auto *se2state = state->as<ob::SE2StateSpace::StateType>();
+    const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
+    const double x =  pos[0];
+    const double y = pos[1];*/
 
     // Checks if x, y, theta, and velocity are within set bounds and checks for obstacle collision
     return  si->satisfiesBounds(state) && isValidStatePoint(x, y, obstacles);
@@ -212,16 +220,32 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     // Set propgator with post integration to enforce that theta is in [0, 2pi].
     ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver,  &PostIntegration));
   
-    //TODO: check, Set start and goal states based on Project 4, Figure 2
-    ob::ScopedState<ob::SE2StateSpace> start(space);
-    start->setX(-4.5);
-    start->setY(-5.0);
-    start->setYaw(0.0);
+    // TODO: check, Set start and goal states based on Project 4, Figure 2
+    // TODO: treat state space as a CompoundStateSpace instead of just SE2, need to verify done correctly
+    // Similar to methods used in setting up bounds and validity checker
+    ob::ScopedState<ob::CompoundStateSpace> start(space);
+    const auto *se2Start = start->as<ob::SE2StateSpace::StateType>(0);
+    se2start->setX(-4.5);
+    se2start->setY(-5.0);
+    se2start->setYaw(0.0);
+    const auto *rStart = start->as<ob::RealVectorStateSpace::StateType>(1);
+    // TODO: Do not know how to set rstart, having troubles with how CompoundStateSpace works
+    // rstart->??
+
+    ob::ScopedState<ob::CompoundStateSpace> goal(space);
+    const auto *se2Goal = goal->as<ob::SE2StateSpace::StateType>(0);
+    se2Goal->setX(-4.5);
+    se2Goal->setY(-5.0);
+    se2Goal->setYaw(0.0);
+    const auto *rGoal = start->as<ob::RealVectorStateSpace::StateType>(1);
+    // TODO: Do not know how to set rstart, having troubles with how CompoundStateSpace works
+    // rGoal->??
   
-    ob::ScopedState<ob::SE2StateSpace> goal(space);
+    // Original setting of the goal (keeping for reference):
+    /*ob::ScopedState<ob::CompoundStateSpace> goal(space);
     goal->setX(4.5);
     goal->setY(5.0);
-    goal->setYaw(0.0);
+    goal->setYaw(0.0);*/
     
     //TODO: verify goal region radius okay, this is from demo again so not sure if applies to our environment
     ss->setStartAndGoalStates(start, goal, 0.05);
