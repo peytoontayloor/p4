@@ -46,12 +46,22 @@ public:
     unsigned int getDimension() const override
     {
         // TODO: The dimension of your projection for the car
+        // Following the demo at:
+        //https://ompl.kavrakilab.org/projections.html
+
+        // Here we want to say what dimension are going to project the car into
+
         return 0;
     }
 
     void project(const ob::State * /* state */, Eigen::Ref<Eigen::VectorXd> /* projection */) const override
     {
         // TODO: Your projection for the car
+
+        // Need to get our current state into the projection version
+        // So need a way to turn SE2 X R into something with the ammount of dimensions specified above
+
+        // TO DO: asking in office hours about projection with compound state spaces
     }
 };
 
@@ -221,7 +231,7 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver,  &PostIntegration));
   
     // TODO: check, Set start and goal states based on Project 4, Figure 2
-    
+
     // TODO: treat state space as a CompoundStateSpace instead of just SE2, need to verify done correctly
     // Similar to methods used in setting up bounds and validity checker
     ob::ScopedState<ob::CompoundStateSpace> start(space);
