@@ -179,9 +179,9 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     //R bounds:
     ob::RealVectorBounds rbounds(1);
     // forward velocity
-    // TODO: find what these values should actually be
-    rbounds.setLow()
-    rbounds.setHigh()
+    // TODO: find what these values should actually be for purpose of compiling, set as 1 (not sure AT ALL if correct)
+    rbounds.setLow(-1);
+    rbounds.setHigh(1);
     r->setBounds(rbounds);
 
     // Create a control space.

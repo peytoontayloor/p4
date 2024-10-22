@@ -91,13 +91,14 @@ bool isValidStatePointPen(const ob::State *state, const oc::SpaceInformation *si
 }
 
 // ADDED FUNCTION
-void PostIntegration (const:: ob::State* /*state*/, const oc::Control* /*control*/, const double /*duration*/, ob::State /**result*/)
+void PostIntegration (const:: ob::State* state, const oc::Control* /*control*/, const double /*duration*/, ob::State *result)
 {
     // Normalize orientation between 0 and 2*pi
    // Extract the SO2 space and normalize the orientation: 
-   const auto *so2state = state->as<ob::SO2StateSpace::StateType>();
-   so2state.enforceBounds(result->as<ob::SO2StateSpace::Stateype>(1));
-   
+   // Pointer in this case bc of how we are accessing so2
+   // TODO: fix post integration, not correct!
+   const auto *so2state = state->as<ob::SO2StateSpace::StateType>(0);
+   so2state->enforceBounds(result->as<ob::SO2StateSpace::StateType>(1));
 }
 
 oc::SimpleSetupPtr createPendulum(double torque)
