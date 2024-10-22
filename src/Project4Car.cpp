@@ -230,33 +230,20 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     // Set propgator with post integration to enforce that theta is in [0, 2pi].
     ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver,  &PostIntegration));
   
-    // TODO: check, Set start and goal states based on Project 4, Figure 2
-
-    // TODO: treat state space as a CompoundStateSpace instead of just SE2, need to verify done correctly
-    // Similar to methods used in setting up bounds and validity checker
+    // Set start and goal states based on Project 4, Figure 2
     ob::ScopedState<ob::CompoundStateSpace> start(space);
-    const auto *se2Start = start->as<ob::SE2StateSpace::StateType>(0);
-    se2Start->setX(-4.5);
-    se2Start->setY(-5.0);
-    se2Start->setYaw(0.0);
-    const auto *rStart = start->as<ob::RealVectorStateSpace::StateType>(1);
-    // TODO: Do not know how to set rstart, having troubles with how CompoundStateSpace works
-    //rStart->???
+    start[0] = -4.5; // x
+    start[1] = -5.5; // y
+    start[2] = 0.0; // yaw 
+    start[3] = 0.0; //v
+
 
     ob::ScopedState<ob::CompoundStateSpace> goal(space);
-    const auto *se2Goal = goal->as<ob::SE2StateSpace::StateType>(0);
-    se2Goal->setX(-4.5);
-    se2Goal->setY(-5.0);
-    se2Goal->setYaw(0.0);
-    const auto *rGoal = start->as<ob::RealVectorStateSpace::StateType>(1);
-    // TODO: Do not know how to set rstart, having troubles with how CompoundStateSpace works
-    //rGoal->???
+    goal[0] = 4.5; // x
+    goal[1] = 5.0; // y
+    goal[2] = 0.0; // yaw 
+    goal[3] = 0.0; //v
   
-    // Original setting of the goal (keeping for reference):
-    /*ob::ScopedState<ob::CompoundStateSpace> goal(space);
-    goal->setX(4.5);
-    goal->setY(5.0);
-    goal->setYaw(0.0);*/
     
     //TODO: verify goal region radius okay, this is from demo again so not sure if applies to our environment
     ss->setStartAndGoalStates(start, goal, 0.05);

@@ -144,13 +144,14 @@ oc::SimpleSetupPtr createPendulum(double torque)
     //ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &PostIntegration));
     ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
 
-    // TODO: set the start and goal states, not of RealVectorStateSpace, I think CompoundStateSpace (verify)
-    
+    // Set the start and goal states
     ob::ScopedState<ob::CompoundStateSpace> start(space);
-    //start->???
+    start[0] = 0.0;
+    start[1] = 0.0;
   
     ob::ScopedState<ob::CompoundStateSpace> goal(space);
-    //goal->???
+    goal[0] =  2.0;
+    goal[0] = 0.0;
 
     //TODO: check goal if goal region/radius okay
     ss->setStartAndGoalStates(start, goal, 0.05);
