@@ -129,7 +129,7 @@ void makeStreet(std::vector<Rectangle> & obstacles)
 bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si, const std::vector<Rectangle>& obstacles)
 { 
     // TODO: treating just as SE2, need to account for it being compound state, verify did correctly!
-    const auto *cmpd = state->as<ob::CompoundStateSpace::StateType.();
+    const auto *cmpd = state->as<ob::CompoundStateSpace::StateType>();
     const auto *se2state = cmpd->as<ob::SE2StateSpace::StateType>(0);
     const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
     const double x =  pos[0];
@@ -221,16 +221,17 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver,  &PostIntegration));
   
     // TODO: check, Set start and goal states based on Project 4, Figure 2
+    
     // TODO: treat state space as a CompoundStateSpace instead of just SE2, need to verify done correctly
     // Similar to methods used in setting up bounds and validity checker
     ob::ScopedState<ob::CompoundStateSpace> start(space);
     const auto *se2Start = start->as<ob::SE2StateSpace::StateType>(0);
-    se2start->setX(-4.5);
-    se2start->setY(-5.0);
-    se2start->setYaw(0.0);
+    se2Start->setX(-4.5);
+    se2Start->setY(-5.0);
+    se2Start->setYaw(0.0);
     const auto *rStart = start->as<ob::RealVectorStateSpace::StateType>(1);
     // TODO: Do not know how to set rstart, having troubles with how CompoundStateSpace works
-    // rstart->??
+    //rStart->???
 
     ob::ScopedState<ob::CompoundStateSpace> goal(space);
     const auto *se2Goal = goal->as<ob::SE2StateSpace::StateType>(0);
@@ -239,7 +240,7 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     se2Goal->setYaw(0.0);
     const auto *rGoal = start->as<ob::RealVectorStateSpace::StateType>(1);
     // TODO: Do not know how to set rstart, having troubles with how CompoundStateSpace works
-    // rGoal->??
+    //rGoal->???
   
     // Original setting of the goal (keeping for reference):
     /*ob::ScopedState<ob::CompoundStateSpace> goal(space);
