@@ -58,10 +58,10 @@ public:
 
         const auto *cmpd = state->as<ob::CompoundStateSpace::StateType>();
         const auto *se2state = cmpd->as<ob::SE2StateSpace::StateType>(0);
-        const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
 
-        projection(0) = pos[0];
-        projection(1) = pos[1];
+        // Can use getX and getY from SE2StateSpace (makes life easier lol)
+        projection(0) = se2state->getX();
+        projection(1) = se2state->getY();
 
     }
 };
@@ -142,15 +142,10 @@ bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si
     // TODO: treating just as SE2, need to account for it being compound state, verify did correctly!
     const auto *cmpd = state->as<ob::CompoundStateSpace::StateType>();
     const auto *se2state = cmpd->as<ob::SE2StateSpace::StateType>(0);
-    const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
-    const double x =  pos[0];
-    const double y = pos[1];
 
-    // old method with just SE2StateSpace:
-    /*const auto *se2state = state->as<ob::SE2StateSpace::StateType>();
-    const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
-    const double x =  pos[0];
-    const double y = pos[1];*/
+    // Using getX and getY from SE2StateSPace
+    const double x = se2state->getX();
+    const double y = se2state->getY();
 
     // Checks if x, y, theta, and velocity are within set bounds and checks for obstacle collision
     return  si->satisfiesBounds(state) && isValidStatePoint(x, y, obstacles);
@@ -275,6 +270,9 @@ void planCar(oc::SimpleSetupPtr & ss, int choice)
     }
     if (choice == 2)
     {
+        // If KPIECE, need to register our projection:
+        // Need to get state space pointer from the simple set up and then need to get the actual state space with get
+        ss->getStateSpace()->registerDefaultProjection(ob::ProjectionEvaluatorPtr(new CarProjection(ss->getStateSpace().get())));
         ss->setPlanner(std::make_shared<oc::KPIECE1>(ss->getSpaceInformation()));
     }
 

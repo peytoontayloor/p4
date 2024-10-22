@@ -40,21 +40,16 @@ public:
 
     unsigned int getDimension() const override
     {
-        // NOTE: from office hours, he mentioned to try the 1 dimensional projection, but if doesnt work,
-        // since our dimensions are already low, just do a direct 2 to 2 mapping :)
-
         return 1;
     }
 
     void project(const ob::State * state, Eigen::Ref<Eigen::VectorXd> projection) const override
     {
-        // Refer to not in above function if this doesnt work 
         const auto *cmpd = state->as<ob::CompoundStateSpace::StateType>();
         const auto *so2state = cmpd->as<ob::SO2StateSpace::StateType>(0);
-        const auto *pos = se2state->as<ob::RealVectorStateSpace::StateType>(0)->values;
-
-        // Ideally, pos[0] is theta
-        projection(0) = pos[0];
+        
+        //grabbing theta from so2->value
+        projection(0) = so2state->value;
     }
 };
 
@@ -184,6 +179,8 @@ void planPendulum(oc::SimpleSetupPtr & ss, int choice)
     }
     if (choice == 2)
     {
+        // If KPIECE, must set the projection (details in planCar)
+        ss->getStateSpace()->registerDefaultProjection(ob::ProjectionEvaluatorPtr(new PendulumProjection(ss->getStateSpace().get())));
         ss->setPlanner(std::make_shared<oc::KPIECE1>(ss->getSpaceInformation()));
     }
 
