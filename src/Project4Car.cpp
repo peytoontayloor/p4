@@ -5,6 +5,7 @@
 //////////////////////////////////////
 
 #include <iostream>
+#include <fstream>
 
 #include <ompl/base/ProjectionEvaluator.h>
 
@@ -273,7 +274,15 @@ void planCar(oc::SimpleSetupPtr & ss, int choice)
         std::cout << "Found Solution:" << std::endl;
         
         // Convert to geometric path so we can nicely print path as matrix.
-        ss->getSolutionPath().asGeometric().printAsMatrix(std::cout);
+        // auto path = ss->getSolutionPath().asGeometric().printAsMatrix(std::cout);
+
+        auto path = ss->getSolutionPath().asGeometric();
+        path.printAsMatrix(std::cout);
+
+        // Capture output in path.txt file
+        std::ofstream pathOutput("path.txt");
+        path.printAsMatrix(pathOutput);
+        pathOutput.close();
     }
     else
     {
