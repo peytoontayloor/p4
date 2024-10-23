@@ -117,12 +117,12 @@ void makeStreet(std::vector<Rectangle> & obstacles)
     r2.x = -5;
     r2.y = -4;
     r2.width = 4;
-    r2.height = 10;
+    r2.height = 8;
 
     r3.x = 2;
     r3.y = -4;
     r3.width = 3;
-    r3.height = 10;
+    r3.height = 8;
 
     r4.x = -5;
     r4.y = 6;

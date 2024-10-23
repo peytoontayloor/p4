@@ -11,8 +11,8 @@ data = numpy.loadtxt('path.txt')
 fig, ax = plt.subplots()
 ax.plot(data[:, 0],data[:, 1],'.-')
 
-ax.set_xlim(0, 9)  
-ax.set_ylim(0, 9)
+ax.set_xlim(-5, 5)  
+ax.set_ylim(-10, 10)
 ax.set_aspect('equal') 
 
 wait = True
@@ -21,13 +21,15 @@ while wait:
         if envNum == '1':
             print("Displaying path.txt in Env 1")
             # ENVIRONMENT 1:  (x of lower left, y of lower left), width, height
-            r1 = patch.Rectangle((1, 1), 2, 4)
-            r2 = patch.Rectangle((4, 4), 2, 1)
-            r3 = patch.Rectangle((4, 1), 2, 1)
+            r1 = patch.Rectangle((-5, -10), 10, 2)
+            r2 = patch.Rectangle((-5, -4), 4, 8)
+            r3 = patch.Rectangle((2, -4), 3, 8)
+            r4 = patch.Rectangle((-5, 6), 10, 2)
 
             ax.add_patch(r1)
             ax.add_patch(r2)
             ax.add_patch(r3)
+            ax.add_patch(r4)
 
             wait = False
             break
@@ -49,4 +51,5 @@ while wait:
         else:
             print("Invalid input. Enter 1 or 2.")
 
+plt.savefig('p4_vis.png')
 plt.show()
