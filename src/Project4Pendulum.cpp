@@ -1,7 +1,7 @@
 ///////////////////////////////////////
 // COMP/ELEC/MECH 450/550
 // Project 4
-// Authors: Peyton Elebash, Swaha Roy and Audrey Lu
+// Authors: Peyton Elebash and Swaha Roy
 //////////////////////////////////////
 
 #include <iostream>
@@ -87,27 +87,18 @@ void pendulumODE(const oc::ODESolver::StateType & q, const oc::Control * control
 // ADDED FUNCTION
 // Just like car setup except we don't need to check for obstacle collision since no obstacles
 // Still should check bounds though
-bool isValidStatePointPen(const ob::State *state, const oc::SpaceInformation *si)
+bool isValidStatePendulum(const ob::State *state, const oc::SpaceInformation *si)
 {
     // No obstacles, just need to check the bounds we set when setting up the space
     return si->satisfiesBounds(state);
 }
 
-// ADDED FUNCTION
-
-// TODO: fix post integration, not correct!
-// Something is wrong with how we access the so2 state space, couldnt figure it out, removed from call in createCar too so that could compile
-/*
-void PostIntegration (const:: ob::State* state, const oc::Control* control, const double duration, ob::State *result)
+void PostIntegration (const ob::State* /*state*/, const oc::Control* /*control*/, const double /*duration*/, ob::State *result)
 {
     // Normalize orientation between 0 and 2*pi
-    // Extract the SO2 space and normalize the orientation: 
-    // Pointer in this case bc of how we are accessing so2
-    // TODO: fix post integration, not correct! 
-    const auto *so2state = state->as<ob::SO2StateSpace::StateType>(0);
-    so2state->enforceBounds(result->as<ob::SO2StateSpace::StateType>(1));
+    ob::SO2StateSpace SO2;
+    SO2.enforceBounds(result->as<ob::CompoundStateSpace::StateType>()->as<ob::SO2StateSpace::StateType>(1));
 }
-*/
 
 oc::SimpleSetupPtr createPendulum(double torque)
 {
@@ -140,14 +131,17 @@ oc::SimpleSetupPtr createPendulum(double torque)
     oc::SpaceInformationPtr si = ss->getSpaceInformation();
 
     // Fixing pendulum alidity checker to work similar the car one
-    ss->setStateValidityChecker([si](const ob::State *state) {return isValidStatePointPen(state, si.get()); });
+    ss->setStateValidityChecker([si](const ob::State *state) {return isValidStatePendulum(state, si.get()); });
 
     //propogate with the ODE function
     auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss->getSpaceInformation(), &pendulumODE));
 
     // TODO: Fix post-integration
     //ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &PostIntegration));
-    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
+    // ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
+    // Set propgator with post integration to enforce that theta is in [0, 2pi].
+    ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver,  &PostIntegration));
+  
 
     // Set the start and goal states
     ob::ScopedState<ob::CompoundStateSpace> start(space);

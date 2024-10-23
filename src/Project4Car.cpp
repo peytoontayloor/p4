@@ -1,7 +1,7 @@
 ///////////////////////////////////////
 // COMP/ELEC/MECH 450/550
 // Project 4
-// Authors: Peyton Elebash, Swaha Roy and Audrey Lu
+// Authors: Peyton Elebash and Swaha Roy
 //////////////////////////////////////
 
 #include <iostream>
@@ -134,16 +134,13 @@ void makeStreet(std::vector<Rectangle> & obstacles)
     obstacles.push_back(r4);
 }
 
-// ADDED THIS FUNCTION
 // Intersect the point (x,y) with the set of rectangles. If the point lies outside of all obstacles 
 // and velocity/acceleration within cspace bounds, return true.
 bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si, const std::vector<Rectangle>& obstacles)
 { 
-    // TODO: treating just as SE2, need to account for it being compound state, verify did correctly!
-    const auto *cmpd = state->as<ob::CompoundStateSpace::StateType>();
-    const auto *se2state = cmpd->as<ob::SE2StateSpace::StateType>(0);
+    const auto *se2state = state->as<ob::CompoundStateSpace::StateType>()->as<ob::SE2StateSpace::StateType>(0);
 
-    // Using getX and getY from SE2StateSPace
+    // Using getX and getY from SE2StateSpace
     const double x = se2state->getX();
     const double y = se2state->getY();
 
@@ -152,12 +149,12 @@ bool isValidStatePointCar(const ob::State *state, const oc::SpaceInformation *si
 
 }
 
-// ADDED THIS FUNCTION
+
 void PostIntegration (const ob::State* /*state*/, const oc::Control* /*control*/, const double /*duration*/, ob::State *result)
 {
     // Normalize orientation between 0 and 2*pi
     ob::SO2StateSpace SO2;
-    SO2.enforceBounds(result->as<ob::SE2StateSpace::StateType>()->as<ob::SO2StateSpace::StateType>(1));
+    SO2.enforceBounds(result->as<ob::CompoundStateSpace::StateType>()->as<ob::SE2StateSpace::StateType>(0)->as<ob::SO2StateSpace::StateType>(1));
 }
 
 /*
@@ -168,14 +165,11 @@ void PostIntegration (const ob::State* /*state*/, const oc::Control* /*control*/
 oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
 {
     // Create car's state space.
-    //auto space(std::make_shared<ob::SE2StateSpace>());
-
     const auto se2 = std::make_shared<ob::SE2StateSpace>();
     const auto r = std::make_shared<ob::RealVectorStateSpace>(1);
     const auto space = se2 + r;
 
     
-    // Set bounds to 3, need to set the bounds for each state space individually
     // SE(2) bounds:
     ob::RealVectorBounds se2bounds(2);
     // x
@@ -184,16 +178,12 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     // y
     se2bounds.setLow(1, -10);
     se2bounds.setHigh(1, 10);
-    // theta
-    // TODO: don't need to set theta I think!
-    //se2bounds.setLow(-pi/2)
-    //se2bounds.setHigh(pi/2)
+
     se2->setBounds(se2bounds);
 
     //R bounds:
     ob::RealVectorBounds rbounds(1);
     // forward velocity
-    // TODO: find what these values should actually be for purpose of compiling, set as 1 (not sure AT ALL if correct)
     rbounds.setLow(-10);
     rbounds.setHigh(10);
     r->setBounds(rbounds);
@@ -202,7 +192,6 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     auto cspace(std::make_shared<oc::RealVectorControlSpace>(space, 2));
 
     // Set the control space bounds (axis 0 - angular velocity, axis 1 - forward acceleration)
-    // TODO: check, used average max angular velocity + forward acceleration found online
     ob::RealVectorBounds cbounds(2);
     cbounds.setLow(0, -0.3);
     cbounds.setHigh(0, 0.3);
@@ -241,9 +230,7 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     goal[3] = 0.0; // v
   
     
-    //TODO: verify goal region radius okay, this is from demo again so not sure if applies to our environment
     ss->setStartAndGoalStates(start, goal, 0.05);
-  
     ss->setup();
 
     return ss;
@@ -262,21 +249,17 @@ void planCar(oc::SimpleSetupPtr & ss, int choice)
     // Set the planner based on choice.
     if (choice == 1)
     {
-        //setPlanner requires a PlannerPtr not just a Planner
-        //ss->setPlanner(new oc::RRT(ss->getSpaceInformation()));
-        //follow similar method as SimpleSetupPtr, i.e., std::make_shared<Planner> gives a PlannerPtr
-
         ss->setPlanner(std::make_shared<oc::RRT>(ss->getSpaceInformation()));
     }
     if (choice == 2)
     {
-        // If KPIECE, need to register our projection:
+        // If KPIECE, register projection.
         // Need to get state space pointer from the simple set up and then need to get the actual state space with get
         ss->getStateSpace()->registerDefaultProjection(ob::ProjectionEvaluatorPtr(new CarProjection(ss->getStateSpace().get())));
         ss->setPlanner(std::make_shared<oc::KPIECE1>(ss->getSpaceInformation()));
     }
 
-    //comment out RGRRT for now- wait until we implement bc it causes comiler errors rn
+    // RGRRT, uncomment after implementation
     /*if (choice == 3)
     {
         ss->setPlanner(std::make_shared<oc::RGRRT>(ss->getSpaceInformation()));
