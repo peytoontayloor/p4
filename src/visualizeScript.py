@@ -39,7 +39,7 @@ while wait:
         elif envNum == '2':
             print("Displaying path.txt, Pendulum robot")
 
-            ax.set_xlim(-5, 2)
+            ax.set_xlim(-5, 5)
             ax.set_ylim(-10, 10) 
             ax.set_xlabel('theta')
             ax.set_ylabel('angular velocity') 
