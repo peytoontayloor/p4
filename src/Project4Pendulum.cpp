@@ -5,6 +5,8 @@
 //////////////////////////////////////
 
 #include <iostream>
+#include <fstream>
+
 
 #include <ompl/base/ProjectionEvaluator.h>
 
@@ -136,23 +138,19 @@ oc::SimpleSetupPtr createPendulum(double torque)
     //propogate with the ODE function
     auto odeSolver(std::make_shared<oc::ODEBasicSolver<>>(ss->getSpaceInformation(), &pendulumODE));
 
-    // TODO: Fix post-integration
-    //ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver, &PostIntegration));
-    // ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver));
     // Set propgator with post integration to enforce that theta is in [0, 2pi].
     ss->setStatePropagator(oc::ODESolver::getStatePropagator(odeSolver,  &PostIntegration));
   
 
-    // Set the start and goal states
+    // Set the start and goal states (-pi/2, 0) --> (pi/2, 0)
     ob::ScopedState<ob::CompoundStateSpace> start(space);
-    start[0] = 0.0;
+    start[0] = -3.14159/2;
     start[1] = 0.0;
   
     ob::ScopedState<ob::CompoundStateSpace> goal(space);
-    goal[0] =  2.0;
-    goal[0] = 0.0;
+    goal[0] =  3.14159/2;
+    goal[1] = 0.0;
 
-    //TODO: check goal if goal region/radius okay
     ss->setStartAndGoalStates(start, goal, 0.05);
 
     ss->setup();
@@ -190,8 +188,14 @@ void planPendulum(oc::SimpleSetupPtr & ss, int choice)
     if (solved)
     {
         std::cout << "Found Solution:" << std::endl;
-        //convert to geometric path so we can nicely print path as matrix
-        ss->getSolutionPath().asGeometric().printAsMatrix(std::cout);
+
+        auto path = ss->getSolutionPath().asGeometric();
+        path.printAsMatrix(std::cout);
+
+        // Capture output in path.txt file
+        std::ofstream pathOutput("path.txt");
+        path.printAsMatrix(pathOutput);
+        pathOutput.close();
     }
     else
     {
