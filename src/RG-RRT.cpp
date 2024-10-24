@@ -86,13 +86,15 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
         return base::PlannerStatus::UNRECOGNIZED_GOAL_TYPE;
     }
 
-    // Start states:
+    // Start states initialized and added to tree
     while (const base::State *st = pis_.nextStart())
     {
         auto *motion = new Motion(siC_);
         si_->copyState(motion->state, st);
         siC_->nullControl(motion->control);
         nn_->add(motion);
+
+        // TODO: initialize reachables R(q) here, not sure if we need to/how to propagate
     }
 
     if (nn_->size() == 0)
@@ -107,6 +109,7 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
         return base::PlannerStatus::INVALID_GOAL;
     }
 
+    // Setting up our control and state samplers if hasn't been done yet
     if (!sampler_)
         sampler_ = si_->allocStateSampler();
     if (!controlSampler_)
@@ -118,6 +121,7 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
     Motion *approxsol = nullptr;
     double approxdif = std::numeric_limits<double>::infinity();
 
+    // TODO: again, check if need to initialize and/or propagate R(q) here too?
     auto *rmotion = new Motion(siC_);
     base::State *rstate = rmotion->state;
     Control *rctrl = rmotion->control;
@@ -139,6 +143,8 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
 
         if (addIntermediateStates_)
         {
+            // If intermediate states, propagate the control in smaller steps, to get intermediate states
+            // TODO: remember propagateWhileValid() for RGRRT bc it stops if a collision is found!
             std::vector<base::State *> pstates;
             cd = siC_->propagateWhileValid(nmotion->state, rctrl, cd, pstates, true);
 
@@ -188,6 +194,7 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
         {
             if (cd >= siC_->getMinControlDuration())
             {
+                // TODO: again. anywhere creating a new motion might need to initialize and/or populate reachables aka R(q)
                 /* create a motion */
                 auto *motion = new Motion(siC_);
                 si_->copyState(motion->state, rmotion->state);
