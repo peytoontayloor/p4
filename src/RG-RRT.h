@@ -105,6 +105,25 @@ namespace ompl
 
                     // The parent motion in the exploration tree
                     Motion *parent{nullptr};
+
+                    // ADDING THIS
+                    // A vector R, holding all the reachable states for the current state (
+                    // (since our states are stored in a NN structure where the nodes are motions, thought this was best way to store this vector)
+                    std::vector<ompl::base::ScopedState<>> reachables;
+
+                    // TODO: need to populate reachables with the reachable states
+                    // We are supposed to apply valid controls to our current state and store result states in reachables
+                    // We set controls and apply them with SpaceInformation::propogate
+                    // I am pretty sure we are supposed to do this in our Project4Car.cpp and Project4Pendulum.cpp --> I asked about this on Piazza, waiting for response
+                    
+                    // Notes about ^^^ from project spec:
+                    // To generate new states, we want to apply some control to an existing state:
+                    // We can allocate controls by allocating new controls from ompl::control::SpaceInformation allocControl
+                    // We can casts controls to their control type defined in the control space
+                    // Use ompl::control::SpaceInformation to generate new states through propogate (which applies control to get new state)
+
+                    // TODO: make sure to perform validity checking on reachable states
+
                 };
 
                 // Free the memory allocated by this planner
