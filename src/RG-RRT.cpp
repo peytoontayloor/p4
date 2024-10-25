@@ -15,6 +15,9 @@
 #include "ompl/tools/config/SelfConfig.h"
 #include <limits>
 
+// ADDED: macro for the steps we will propagate to get R(q)
+#define FIXEDSTEPS 2
+
 // Constructor:
 ompl::control::RRT::RRT(const SpaceInformationPtr &si) : base::Planner(si, "RRT")
 {
@@ -121,10 +124,14 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
     Motion *approxsol = nullptr;
     double approxdif = std::numeric_limits<double>::infinity();
 
-    // TODO: again, check if need to initialize and/or propagate R(q) here too?
     auto *rmotion = new Motion(siC_);
     base::State *rstate = rmotion->state;
     Control *rctrl = rmotion->control;
+
+    //  ADDED, anywhere new motion, make sure to initialize its reachability as well
+    // right now, don't need to populate since this will store different r(q)s depending on what the state is
+    std::vector<ompl::base::ScopedState<>> reach = rmotion->reachables;
+
     base::State *xstate = si_->allocState();
 
     while (!ptc)
@@ -141,6 +148,32 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
         /* sample a random control that attempts to go towards the random state, and also sample a control duration */
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
 
+        // ADDED: populate reachable based on rcontrol and rstate:
+
+        // not sure if right spot, but going to populate the reachability state here:
+        // initialize something to hold each of our states as we prop from rstate:
+        base::State resultState;
+        // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
+        for(int i = -10; i <= 10; i += 2)
+        {
+            // TODO: need to set the control input as something specific each time (in this case, i)
+            // ^^then replace i in propagate call with the actual control
+
+            // TODO: verify correct state information pointer chosen
+            //siC_->propagate(rstate, i, FIXEDSTEPS, resultState);
+            // TODO: check if can use propagateWhileValid to collision check instead of just propagate?
+            siC_->propagateWhileValid(rstate, i, FIXEDSTEPS, resultState);
+
+            // If result is rstate, we didn't find valid reachable this round
+            // TODO: can we include the state itself in reachable, or should we skip over adding it?
+
+            // adding the reachable state to R(q), only if valid! 
+            // TODO: if invalid state, do we need to sample more so we have 11 reachable in set? 
+            reach.push_back(resultState);
+
+        }
+
+        // TODO: investigate where to add reachability r(q) in this conditional, skipped for now
         if (addIntermediateStates_)
         {
             // If intermediate states, propagate the control in smaller steps, to get intermediate states
@@ -194,7 +227,6 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
         {
             if (cd >= siC_->getMinControlDuration())
             {
-                // TODO: again. anywhere creating a new motion might need to initialize and/or populate reachables aka R(q)
                 /* create a motion */
                 auto *motion = new Motion(siC_);
                 si_->copyState(motion->state, rmotion->state);
