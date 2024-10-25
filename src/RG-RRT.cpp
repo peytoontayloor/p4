@@ -103,9 +103,10 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
         // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
         for(int i = -10; i <= 10; i += 2)
         {
-            // TODO: need to set the control input as something specific each time (in this case, i)
-            // ^^then replace i in propagate call with the actual control
-            siC_->propagateWhileValid(rstate, i, FIXEDSTEPS, result);
+            // TODO: verify setting control input correctly?
+            motion->control[0] = i;
+
+            siC_->propagateWhileValid(rstate, motion->control, FIXEDSTEPS, result);
 
             motion->reachables.push_back(result);
 
@@ -172,13 +173,15 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
         // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
         for(int i = -10; i <= 10; i += 2)
         {
-            // TODO: need to set the control input as something specific each time (in this case, i)
-            // ^^then replace i in propagate call with the actual control
+            // doing torque for pend and u[0] for car, so want to set position 0 of control no matter what
+            // TODO: verify setting the initial control input correctly
+            rctrl[0] = i;
+
 
             // TODO: verify correct state information pointer chosen
             //siC_->propagate(rstate, i, FIXEDSTEPS, resultState);
             // TODO: check if can use propagateWhileValid to collision check instead of just propagate?
-            siC_->propagateWhileValid(rstate, i, FIXEDSTEPS, resultState);
+            siC_->propagateWhileValid(rstate, rctrl, FIXEDSTEPS, resultState);
 
             // If result is rstate, we didn't find valid reachable this round
             // TODO: can we include the state itself in reachable, or should we skip over adding it?
@@ -210,6 +213,22 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
                     // we need multiple copies of rctrl
                     motion->control = siC_->allocControl();
                     siC_->copyControl(motion->control, rctrl);
+
+                    // ADDED
+                    // not sure if correct move, but making sure to include reachable initialization and population here as well
+                    base::State resultState;
+                    // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
+                    for(int i = -10; i <= 10; i += 2)
+                    {
+                        rctrl[0] = i;
+
+                        siC_->propagateWhileValid(rstate, rctrl, FIXEDSTEPS, resultState);
+
+                        motion->reachables.push_back(resultState);
+
+                    }
+
+
                     motion->steps = 1;
                     motion->parent = lastmotion;
                     lastmotion = motion;
