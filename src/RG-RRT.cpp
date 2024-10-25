@@ -18,6 +18,9 @@
 // ADDED: macro for the steps we will propagate to get R(q)
 #define FIXEDSTEPS 2
 
+// ADDED: needed for reachables vector for each state in the tree
+#include "ompl/base/ScopedState.h"
+
 // Constructor:
 ompl::control::RGRRT::RGRRT(const SpaceInformationPtr &si) : base::Planner(si, "RGRRT")
 {
@@ -96,6 +99,7 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         si_->copyState(motion->state, st);
         siC_->nullControl(motion->control);
 
+        // TODO: verify if this is even needed and also verify using correct siC_-> for all propagate calls
         // ADDED:
         // see notes in main loop for more detail on what needs to be done here
         // initializing and populating the reachable state for start state(s):
@@ -103,12 +107,12 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
         for(int i = -10; i <= 10; i += 2)
         {
-            // TODO: verify setting control input correctly?
+            // TODO: setting control wrong, investigate
             motion->control[0] = i;
 
             siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
 
-            motion->reachables.push_back(resultState);
+            motion->reachables.push_back(ompl::base::ScopedState<>(siC_->getStateSpace(), resultState));
 
         }
 
@@ -173,7 +177,7 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         for(int i = -10; i <= 10; i += 2)
         {
             // doing torque for pend and u[0] for car, so want to set position 0 of control no matter what
-            // TODO: verify setting the initial control input correctly
+            // TODO: setting control value wrong, investigate how to do this, might be with setValue?
             rctrl[0] = i;
 
 
@@ -187,7 +191,7 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
 
             // adding the reachable state to R(q), only if valid! 
             // TODO: if invalid state, do we need to sample more so we have 11 reachable in set? 
-            reach.push_back(resultState);
+            reach.push_back(ompl::base::ScopedState<>(siC_->getStateSpace(), resultState));
 
         }
 
@@ -222,7 +226,7 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
 
                         siC_->propagateWhileValid(rstate, rctrl, FIXEDSTEPS, resultState);
 
-                        motion->reachables.push_back(resultState);
+                        motion->reachables.push_back(ompl::base::ScopedState<>(siC_->getStateSpace(), resultState));
 
                     }
 
