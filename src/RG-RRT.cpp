@@ -95,6 +95,22 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
         auto *motion = new Motion(siC_);
         si_->copyState(motion->state, st);
         siC_->nullControl(motion->control);
+
+        // ADDED:
+        // see notes in main loop for more detail on what needs to be done here
+        // initializing and populating the reachable state for start state(s):
+        base::State result;
+        // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
+        for(int i = -10; i <= 10; i += 2)
+        {
+            // TODO: need to set the control input as something specific each time (in this case, i)
+            // ^^then replace i in propagate call with the actual control
+            siC_->propagateWhileValid(rstate, i, FIXEDSTEPS, result);
+
+            motion->reachables.push_back(result);
+
+        }
+
         nn_->add(motion);
 
         // TODO: initialize reachables R(q) here, not sure if we need to/how to propagate
@@ -228,9 +244,15 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
             if (cd >= siC_->getMinControlDuration())
             {
                 /* create a motion */
+                // Copying our sampled state and control into a new motion getting aded to the tree
                 auto *motion = new Motion(siC_);
                 si_->copyState(motion->state, rmotion->state);
                 siC_->copyControl(motion->control, rctrl);
+
+                // ADDED:
+                // TODO: confirm can correctly copy our r(q) like this
+                motion->reachables = reach;
+                
                 motion->steps = cd;
                 motion->parent = nmotion;
 
