@@ -7,6 +7,11 @@
 #ifndef RGRRT_H
 #define RGRRT_H
 
+// ADDED: 
+// these were in original RRT, and I know at leadt neareast neighbors is needed in RGRRT
+#include "ompl/control/planners/PlannerIncludes.h"
+#include "ompl/datastructures/NearestNeighbors.h"
+
 namespace ompl
 {
     namespace control
@@ -19,9 +24,9 @@ namespace ompl
             // RRT From OMPL:
             public:
             
-                RRT(const SpaceInformationPtr &si);
+                RGRRT(const SpaceInformationPtr &si);
 
-                ~RRT() override;
+                ~RGRRT() override;
 
                 // Continue solving for some amount of time. Return true if solution was found.
                 base::PlannerStatus solve(const base::PlannerTerminationCondition &ptc) override;

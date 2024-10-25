@@ -19,23 +19,23 @@
 #define FIXEDSTEPS 2
 
 // Constructor:
-ompl::control::RRT::RRT(const SpaceInformationPtr &si) : base::Planner(si, "RRT")
+ompl::control::RGRRT::RGRRT(const SpaceInformationPtr &si) : base::Planner(si, "RGRRT")
 {
     specs_.approximateSolutions = true;
     siC_ = si.get();
 
-    Planner::declareParam<double>("goal_bias", this, &RRT::setGoalBias, &RRT::getGoalBias, "0.:.05:1.");
-    Planner::declareParam<bool>("intermediate_states", this, &RRT::setIntermediateStates, &RRT::getIntermediateStates,"0,1");
+    Planner::declareParam<double>("goal_bias", this, &RGRRT::setGoalBias, &RGRRT::getGoalBias, "0.:.05:1.");
+    Planner::declareParam<bool>("intermediate_states", this, &RGRRT::setIntermediateStates, &RGRRT::getIntermediateStates,"0,1");
 }
 
 // Destructor:
-ompl::control::RRT::~RRT()
+ompl::control::RGRRT::~RGRRT()
 {
     freeMemory();
 }
 
 // Set up:
-void ompl::control::RRT::setup()
+void ompl::control::RGRRT::setup()
 {
     // Initializes planner
     base::Planner::setup();
@@ -47,7 +47,7 @@ void ompl::control::RRT::setup()
 }
 
 // Clear:
-void ompl::control::RRT::clear()
+void ompl::control::RGRRT::clear()
 {
     Planner::clear();
     sampler_.reset();
@@ -59,7 +59,7 @@ void ompl::control::RRT::clear()
 }
 
 // Frees DS memory
-void ompl::control::RRT::freeMemory()
+void ompl::control::RGRRT::freeMemory()
 {
     if (nn_)
     {
@@ -77,7 +77,7 @@ void ompl::control::RRT::freeMemory()
 }
 
 // Solve:
-ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminationCondition &ptc)
+ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
 {
     checkValidity();
     base::Goal *goal = pdef_->getGoal().get();
@@ -99,14 +99,14 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
         // ADDED:
         // see notes in main loop for more detail on what needs to be done here
         // initializing and populating the reachable state for start state(s):
-        base::State resultState;
+        base::State *resultState;
         // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
         for(int i = -10; i <= 10; i += 2)
         {
             // TODO: verify setting control input correctly?
             motion->control[0] = i;
 
-            siC_->propagateWhileValid(rstate, motion->control, FIXEDSTEPS, resultState);
+            siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
 
             motion->reachables.push_back(resultState);
 
@@ -168,7 +168,7 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
 
         // not sure if right spot, but going to populate the reachability state here:
         // initialize something to hold each of our states as we prop from rstate:
-        base::State resultState;
+        base::State *resultState;
         // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
         for(int i = -10; i <= 10; i += 2)
         {
@@ -214,7 +214,7 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
 
                     // ADDED:
                     // not sure if correct move, but making sure to include reachable initialization and population here as well
-                    base::State resultState;
+                    base::State *resultState;
                     // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
                     for(int i = -10; i <= 10; i += 2)
                     {
@@ -335,7 +335,7 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
 }
 
 // Gets the DS of the planner:
-void ompl::control::RRT::getPlannerData(base::PlannerData &data) const
+void ompl::control::RGRRT::getPlannerData(base::PlannerData &data) const
 {
     Planner::getPlannerData(data);
 
