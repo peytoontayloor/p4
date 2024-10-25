@@ -99,22 +99,21 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
         // ADDED:
         // see notes in main loop for more detail on what needs to be done here
         // initializing and populating the reachable state for start state(s):
-        base::State result;
+        base::State resultState;
         // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
         for(int i = -10; i <= 10; i += 2)
         {
             // TODO: verify setting control input correctly?
             motion->control[0] = i;
 
-            siC_->propagateWhileValid(rstate, motion->control, FIXEDSTEPS, result);
+            siC_->propagateWhileValid(rstate, motion->control, FIXEDSTEPS, resultState);
 
-            motion->reachables.push_back(result);
+            motion->reachables.push_back(resultState);
 
         }
 
         nn_->add(motion);
 
-        // TODO: initialize reachables R(q) here, not sure if we need to/how to propagate
     }
 
     if (nn_->size() == 0)
@@ -192,7 +191,6 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
 
         }
 
-        // TODO: investigate where to add reachability r(q) in this conditional, skipped for now
         if (addIntermediateStates_)
         {
             // If intermediate states, propagate the control in smaller steps, to get intermediate states
@@ -214,7 +212,7 @@ ompl::base::PlannerStatus ompl::control::RRT::solve(const base::PlannerTerminati
                     motion->control = siC_->allocControl();
                     siC_->copyControl(motion->control, rctrl);
 
-                    // ADDED
+                    // ADDED:
                     // not sure if correct move, but making sure to include reachable initialization and population here as well
                     base::State resultState;
                     // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
