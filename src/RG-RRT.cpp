@@ -20,6 +20,9 @@
 // ADDED: needed for reachables vector for each state in the tree
 #include "ompl/base/ScopedState.h"
 
+// ADDED: for setting the control input
+#include <ompl/control/spaces/RealVectorControlSpace.h>
+
 // Constructor:
 ompl::control::RGRRT::RGRRT(const SpaceInformationPtr &si) : base::Planner(si, "RGRRT")
 {
@@ -106,11 +109,16 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         // ADDED:
         // see notes in main loop for more detail on what needs to be done here
         // initializing and populating the reachable state for start state(s):
+        // TODO: may need to somehow allocate memory to result state?
         base::State *resultState;
-        for(int i = -10; i <= 10; i += 2)
+        // Trying new method of setting control values:
+        double *controlInpt = (motion->control)->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
+
+        for(double i = -10; i <= 10; i += 2)
         {
-            // TODO: setting control wrong, investigate
-            motion->control[0] = i;
+            // TODO: verify setting control input in pos 0 correctly, no compiler errors but iffy if this is valid
+            // got idea for setting it this way from the ODE functions in car and pendulum
+            controlInpt[0] = i;
 
             siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
 
@@ -175,11 +183,13 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         // ADDED: populate reachable based on rcontrol and rstate:
         base::State *resultState;
         // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
-        for(int i = -10; i <= 10; i += 2)
+        double *controlInpt = (rctrl)->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
+
+        for(double i = -10; i <= 10; i += 2)
         {
-            // TODO: setting control value wrong, investigate how to do this, might be with setValue?
+            // TODO: check setting controlInpt right, if make changes, make sure to change other r(q) loops
             // doing torque for pend and u[0] for car, so want to set position 0 of control no matter what
-            rctrl[0] = i;
+            controlInpt[0] = i;
 
             // TODO: check if can use propagateWhileValid to collision check instead of just propagate?
             siC_->propagateWhileValid(rstate, rctrl, FIXEDSTEPS, resultState);
@@ -218,9 +228,11 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
                     // ADDED:
                     base::State *resultState;
                     // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
-                    for(int i = -10; i <= 10; i += 2)
+                    double *controlInpt = (motion->control)->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
+
+                    for(double i = -10; i <= 10; i += 2)
                     {
-                        rctrl[0] = i;
+                        controlInpt[0] = i;
 
                         siC_->propagateWhileValid(rstate, rctrl, FIXEDSTEPS, resultState);
 
@@ -330,7 +342,7 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         si_->freeState(rmotion->state);
     if (rmotion->control)
         siC_->freeControl(rmotion->control);
-        
+
     // ADDED: clearing memory for the reachable set vector:
     rmotion->reachables.clear();
     
