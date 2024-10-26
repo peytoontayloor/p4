@@ -114,7 +114,11 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         // Trying new method of setting control values:
         double *controlInpt = (motion->control)->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
 
-        for(double i = -10; i <= 10; i += 2)
+        // TODO: verify, i think bounds should be the bounds on the 0th dimension of the control space
+        // instead of hardcoding 10
+        auto bounds = siC_->getControlSpace()->as<ompl::control::RealVectorControlSpace>()->getBounds();
+        stepSize = bounds->getDifference() / 11
+        for(double i = bounds.low[0]; i <= bounds.high[0]; i += stepSize)
         {
             // TODO: verify setting control input in pos 0 correctly, no compiler errors but iffy if this is valid
             // got idea for setting it this way from the ODE functions in car and pendulum
