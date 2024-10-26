@@ -75,11 +75,7 @@ void ompl::control::RGRRT::freeMemory()
                 siC_->freeControl(motion->control);
 
             // ADDED: clearing memory for the reachable set vector:
-            // TODO: not sure if need conditional?
-            if (motion->reachables)
-            {
-                motion->reachables.clear();
-            }
+            motion->reachables.clear();
 
             delete motion;
         }
@@ -334,6 +330,10 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         si_->freeState(rmotion->state);
     if (rmotion->control)
         siC_->freeControl(rmotion->control);
+        
+    // ADDED: clearing memory for the reachable set vector:
+    rmotion->reachables.clear();
+    
     delete rmotion;
     si_->freeState(xstate);
 
