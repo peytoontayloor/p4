@@ -105,35 +105,24 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         si_->copyState(motion->state, st);
         siC_->nullControl(motion->control);
 
-        // TODO: verify if we need to populate the reachability set here
-        // ADDED:
-        // see notes in main loop for more detail on what needs to be done here
-        // initializing and populating the reachable state for start state(s):
-        // TODO: may need to somehow allocate memory to result state?
+        // Populate reachability set for start state, allocate state and control
         base::State *resultState = si_->allocState();
-        // Trying new method of setting control values:
-        double *controlInpt = (motion->control)->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
+        motion->control = siC_->allocControl();
 
-        // TODO: verify, i think bounds should be the bounds on the 0th dimension of the control space
-        // instead of hardcoding 10
+        // Get bounds of index 0 of control space
         auto bounds = siC_->getControlSpace()->as<ompl::control::RealVectorControlSpace>()->getBounds();
-        stepSize = bounds->getDifference() / 11
+        double stepSize = bounds.getDifference()[0] / 11.0;
         for(double i = bounds.low[0]; i <= bounds.high[0]; i += stepSize)
         {
-            // TODO: verify setting control input in pos 0 correctly, no compiler errors but iffy if this is valid
-            // got idea for setting it this way from the ODE functions in car and pendulum
-            controlInpt[0] = i;
+            (motion->control)->as<ompl::control::RealVectorControlSpace::ControlType>()->values[0] = i;
 
             siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
 
             motion->reachables.push_back(ompl::base::ScopedState<>(siC_->getStateSpace(), resultState));
-
         }
 
         // TODO: do we need to free memory allocated to resultState? or at least do we need to make it empty again?
-
         nn_->add(motion);
-
     }
 
     if (nn_->size() == 0)
@@ -172,15 +161,30 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
 
     while (!ptc)
     {
-        /* sample random state (with goal biasing) */
-        if (rng_.uniform01() < goalBias_ && goal_s->canSample())
-            goal_s->sampleGoal(rstate);
-        else
-            sampler_->sampleUniform(rstate);
 
-        /* find closest state in the tree */
-        Motion *nmotion = nn_->nearest(rmotion);
+        bool expand = false;
+        // Sample random states until we find a qrand s.t. R(qnear)
+        // closer to qrand than qnear is to qrand
+        while (!expand && !ptc) {
+             /* sample random state (with goal biasing) */
+            if (rng_.uniform01() < goalBias_ && goal_s->canSample())
+                goal_s->sampleGoal(rstate); //qrand
+            else
+                sampler_->sampleUniform(rstate); //qrand
 
+            Motion *nmotion = nn_->nearest(rmotion); //qnear
+            // Distance between qnear and qrand
+            double distRandToNear = distanceFunction(nmotion, rmotion);
+
+            for (ompl::base::ScopedState<> reachState: nmotion->reachables) {
+
+                if (si_->distance(nmotion->state, reachState) < distRandToNear) {
+                    expand = true;
+                    break;
+                }
+            }
+        }
+       
         /* sample a random control that attempts to go towards the random state, and also sample a control duration */
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
 
@@ -188,7 +192,6 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         base::State *resultState = si_->allocState();
         // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
         double *controlInpt = (rctrl)->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
-
         for(double i = -10; i <= 10; i += 2)
         {
             // TODO: check setting controlInpt right, if make changes, make sure to change other r(q) loops
@@ -207,7 +210,6 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
 
         }
 
-        // TODO: do we need to free memory allocated to resultState? or at least do we need to make it empty again?
 
         if (addIntermediateStates_)
         {
