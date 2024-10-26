@@ -6,8 +6,6 @@
 
 #include "RG-RRT.h"
 
-// TODO: Implement RGRRT as described
-
 // Copied over RRT from OMPL as a starting point, added some comments and left comments from original RRT
 
 #include "ompl/control/planners/rrt/RRT.h"
@@ -16,6 +14,7 @@
 #include <limits>
 
 // ADDED: macro for the steps we will propagate to get R(q)
+// TODO: get a good step/time value for here, left as 2 right now
 #define FIXEDSTEPS 2
 
 // ADDED: needed for reachables vector for each state in the tree
@@ -74,6 +73,14 @@ void ompl::control::RGRRT::freeMemory()
                 si_->freeState(motion->state);
             if (motion->control)
                 siC_->freeControl(motion->control);
+
+            // ADDED: clearing memory for the reachable set vector:
+            // TODO: not sure if need conditional?
+            if (motion->reachables)
+            {
+                motion->reachables.clear();
+            }
+
             delete motion;
         }
     }
@@ -100,12 +107,10 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         siC_->nullControl(motion->control);
 
         // TODO: verify if we need to populate the reachability set here
-        // TODO: I am iffy if i am using siC_ correctly for propagate (thinking it could be si_)
         // ADDED:
         // see notes in main loop for more detail on what needs to be done here
         // initializing and populating the reachable state for start state(s):
         base::State *resultState;
-        // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
         for(int i = -10; i <= 10; i += 2)
         {
             // TODO: setting control wrong, investigate
@@ -116,6 +121,8 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
             motion->reachables.push_back(ompl::base::ScopedState<>(siC_->getStateSpace(), resultState));
 
         }
+
+        // TODO: do we need to free memory allocated to resultState? or at least do we need to make it empty again?
 
         nn_->add(motion);
 
@@ -170,9 +177,6 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
 
         // ADDED: populate reachable based on rcontrol and rstate:
-
-        // not sure if right spot, but going to populate the reachability state here:
-        // initialize something to hold each of our states as we pop from rstate:
         base::State *resultState;
         // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
         for(int i = -10; i <= 10; i += 2)
@@ -181,26 +185,23 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
             // doing torque for pend and u[0] for car, so want to set position 0 of control no matter what
             rctrl[0] = i;
 
-
-            // TODO: verify correct state information pointer chosen
-            //siC_->propagate(rstate, i, FIXEDSTEPS, resultState);
-            
             // TODO: check if can use propagateWhileValid to collision check instead of just propagate?
             siC_->propagateWhileValid(rstate, rctrl, FIXEDSTEPS, resultState);
 
-            // If result is rstate, we didn't find valid reachable this round
+            // With using propagateWhileValid, it will put the original state into resultState if the final state is invalid
             // TODO: can we include the state itself in reachable, or should we skip over adding it?
 
             // adding the reachable state to R(q), only if valid! 
-            // TODO: if invalid state, do we need to sample more so we have 11 reachable in set? 
+            // TODO: if invalid state, do we need to sample more so we have exactly 11 reachable in set? (I asked this on Piazza hopefully someone responds lol)
             reach.push_back(ompl::base::ScopedState<>(siC_->getStateSpace(), resultState));
 
         }
 
+        // TODO: do we need to free memory allocated to resultState? or at least do we need to make it empty again?
+
         if (addIntermediateStates_)
         {
             // If intermediate states, propagate the control in smaller steps, to get intermediate states
-            // TODO: remember propagateWhileValid() for RGRRT bc it stops if a collision is found!
             std::vector<base::State *> pstates;
             cd = siC_->propagateWhileValid(nmotion->state, rctrl, cd, pstates, true);
 
@@ -219,7 +220,6 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
                     siC_->copyControl(motion->control, rctrl);
 
                     // ADDED:
-                    // not sure if correct move, but making sure to include reachable initialization and population here as well
                     base::State *resultState;
                     // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
                     for(int i = -10; i <= 10; i += 2)
@@ -231,6 +231,8 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
                         motion->reachables.push_back(ompl::base::ScopedState<>(siC_->getStateSpace(), resultState));
 
                     }
+
+                    // TODO: do we need to free memory allocated to resultState? or at least do we need to make it empty again?
 
 
                     motion->steps = 1;
