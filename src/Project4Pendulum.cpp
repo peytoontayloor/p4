@@ -176,11 +176,11 @@ void planPendulum(oc::SimpleSetupPtr & ss, int choice)
         ss->setPlanner(std::make_shared<oc::KPIECE1>(ss->getSpaceInformation()));
     }
 
-    //comment out RGRRT for now- wait until we implement bc it causes comiler errors rn
-    /*if (choice == 3)
+    //RGRRT:
+    if (choice == 3)
     {
         ss->setPlanner(std::make_shared<oc::RGRRT>(ss->getSpaceInformation()));
-    }*/
+    }
 
     //solve the problem:
     ob::PlannerStatus solved = ss->solve(10.0);

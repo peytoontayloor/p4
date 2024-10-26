@@ -260,11 +260,11 @@ void planCar(oc::SimpleSetupPtr & ss, int choice)
         ss->setPlanner(std::make_shared<oc::KPIECE1>(ss->getSpaceInformation()));
     }
 
-    // RGRRT, uncomment after implementation
-    /*if (choice == 3)
+    //RGRRT,
+    if (choice == 3)
     {
         ss->setPlanner(std::make_shared<oc::RGRRT>(ss->getSpaceInformation()));
-    }*/
+    }
 
     // Solve the problem.
     ob::PlannerStatus solved = ss->solve(10.0);

@@ -110,7 +110,7 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         // see notes in main loop for more detail on what needs to be done here
         // initializing and populating the reachable state for start state(s):
         // TODO: may need to somehow allocate memory to result state?
-        base::State *resultState;
+        base::State *resultState = si_->allocState();
         // Trying new method of setting control values:
         double *controlInpt = (motion->control)->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
 
@@ -181,7 +181,7 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
 
         // ADDED: populate reachable based on rcontrol and rstate:
-        base::State *resultState;
+        base::State *resultState = si_->allocState();
         // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
         double *controlInpt = (rctrl)->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
 
@@ -226,7 +226,7 @@ ompl::base::PlannerStatus ompl::control::RGRRT::solve(const base::PlannerTermina
                     siC_->copyControl(motion->control, rctrl);
 
                     // ADDED:
-                    base::State *resultState;
+                    base::State *resultState = si_->allocState();
                     // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
                     double *controlInpt = (motion->control)->as<ompl::control::RealVectorControlSpace::ControlType>()->values;
 
