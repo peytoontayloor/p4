@@ -100,9 +100,16 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
     {
         (motion->control)->as<oc::RealVectorControlSpace::ControlType>()->values[0] = i;
 
+        // TODO: check if can use propagateWhileValid to collision check instead of just propagate?
         siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
 
         motion->reachables->push_back(ob::ScopedState<>(siC_->getStateSpace(), resultState));
+
+        // With using propagateWhileValid, it will put the original state into resultState if the final state is invalid
+        // TODO: can we include the state itself in reachable, or should we skip over adding it?
+
+        // adding the reachable state to R(q), only if valid! 
+        // TODO: if invalid state, do we need to sample more so we have exactly 11 reachable in set? (I asked this on Piazza hopefully someone responds lol)
     }
     // TODO: do we need to free memory allocated to resultState? or at least do we need to make it empty again?
 
@@ -166,13 +173,15 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
     Control *rctrl = rmotion->control;
     std::vector<ob::ScopedState<>> *reach = rmotion->reachables;
 
-    // TODO: delete? never used, even in RRT...
+    // TODO: RRT defines this but never uses
+    // currently using ito temporarily store the point in R(qnear) closest to qrand
     ob::State *xstate = si_->allocState();
+    auto *nmotion = new Motion(siC_);
 
     while (!ptc)
     {
         bool expand = false;
-        // Sample random states until we find a qrand s.t. R(qnear)
+        // Sample random states until we find a qrand s.t. there exists a point in R(qnear)
         // closer to qrand than qnear is to qrand
         while (!expand && !ptc) {
              /* sample random state (with goal biasing) */
@@ -181,44 +190,32 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
             else
                 sampler_->sampleUniform(rstate); //qrand
 
-            Motion *nmotion = nn_->nearest(rmotion); //qnear
+            nmotion = nn_->nearest(rmotion); //qnear
+
             // Distance between qnear and qrand
-            double distRandToNear = distanceFunction(nmotion, rmotion);
-
+            double distRandToNear = distanceFunction(rmotion, nmotion);
+            double minDistRandToReach = distRandToNear;
             for (ob::ScopedState<> reachState: *nmotion->reachables) {
-
-                if (si_->distance(nmotion->state, reachState) < distRandToNear) {
+                double distRandToReach = si_->distance(rmotion->state, reachState.get());
+                if (distRandToReach < distRandToNear) {
                     expand = true;
-                    break;
+                    if (distRandToReach < minDistRandToReach) {
+                        // Finds the closest point in R(qnear) to qrand
+                        xstate = reachState.get();
+                        minDistRandToReach = distRandToReach;
+                    }                 
                 }
             }
         }
        
+       // TODO: from the paper, it may be that we set rmotion->state = xstate, need to verify, not sure at all
+       // if we don't need to do this, we can prob remove xstate
+
         /* sample a random control that attempts to go towards the random state, and also sample a control duration */
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
-
-        // ADDED: populate reachable based on rcontrol and rstate:
-        base::State *resultState = si_->allocState();
-        // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
-        double *controlInpt = (rctrl)->as<oc::RealVectorControlSpace::ControlType>()->values;
-        for(double i = -10; i <= 10; i += 2)
-        {
-            // TODO: check setting controlInpt right, if make changes, make sure to change other r(q) loops
-            // doing torque for pend and u[0] for car, so want to set position 0 of control no matter what
-            controlInpt[0] = i;
-
-            // TODO: check if can use propagateWhileValid to collision check instead of just propagate?
-            siC_->propagateWhileValid(rstate, rctrl, FIXEDSTEPS, resultState);
-
-            // With using propagateWhileValid, it will put the original state into resultState if the final state is invalid
-            // TODO: can we include the state itself in reachable, or should we skip over adding it?
-
-            // adding the reachable state to R(q), only if valid! 
-            // TODO: if invalid state, do we need to sample more so we have exactly 11 reachable in set? (I asked this on Piazza hopefully someone responds lol)
-            reach->push_back(ob::ScopedState<>(siC_->getStateSpace(), resultState));
-
-        }
-
+        
+        // Populate reachability set for the new state
+        generateReachabilitySet(rmotion);
 
         if (addIntermediateStates_)
         {
