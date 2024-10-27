@@ -81,7 +81,7 @@ void oc::RGRRT::freeMemory()
                 siC_->freeControl(motion->control);
 
             // ADDED: clearing memory for the reachable set vector:
-            motion->reachables->clear();
+            motion->reachables.clear();
 
             delete motion;
         }
@@ -100,21 +100,21 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
     {
         (motion->control)->as<oc::RealVectorControlSpace::ControlType>()->values[0] = i;
 
-        // TODO: check if can use propagateWhileValid to collision check instead of just propagate?
-        siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
+        // Propgates forward and performes collision checking
+        // TODO: FIXEDSTEPS...maybe use siC_->getMinControlDuration()? or getMaxControlDuration?... dont know
+        int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
 
-        motion->reachables->push_back(ob::ScopedState<>(siC_->getStateSpace(), resultState));
-
-        // With using propagateWhileValid, it will put the original state into resultState if the final state is invalid
-        // TODO: can we include the state itself in reachable, or should we skip over adding it?
-
-        // adding the reachable state to R(q), only if valid! 
-        // TODO: if invalid state, do we need to sample more so we have exactly 11 reachable in set? (I asked this on Piazza hopefully someone responds lol)
+        if (stepsNoCollision > 0) {
+            // Only add the last valid state if it is not the start state
+            motion->reachables.push_back(ob::ScopedState<>(siC_->getStateSpace(), resultState));
+        }
     }
-    // TODO: do we need to free memory allocated to resultState? or at least do we need to make it empty again?
 
-    // TODO: understand how the "valid" part of prograteWhileValid works
-    // need to collision check? mentioned in project descrip
+    // TODO: do we need to free memory allocated to resultState? or at least do we need to make it empty again?
+    // not sure, need to check, but thinking that we do need to. especially if scopedstate copies resultState (and if it doesn't
+    // that's a problem cuz then we'd be overwrtiting previous states)
+    // if that's the case resultState isn't doing anything after this function terminates
+    // si_->freeState(resultState);
 }
 
 // Solve:
@@ -171,10 +171,8 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
     auto *rmotion = new Motion(siC_);
     ob::State *rstate = rmotion->state;
     Control *rctrl = rmotion->control;
-    std::vector<ob::ScopedState<>> *reach = rmotion->reachables;
 
-    // TODO: RRT defines this but never uses
-    // currently using ito temporarily store the point in R(qnear) closest to qrand
+    // TODO: RRT defines this but never uses, im currently using it temporarily store the point in R(qnear) closest to qrand
     ob::State *xstate = si_->allocState();
     auto *nmotion = new Motion(siC_);
 
@@ -195,7 +193,7 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
             // Distance between qnear and qrand
             double distRandToNear = distanceFunction(rmotion, nmotion);
             double minDistRandToReach = distRandToNear;
-            for (ob::ScopedState<> reachState: *nmotion->reachables) {
+            for (ob::ScopedState<> reachState: nmotion->reachables) {
                 double distRandToReach = si_->distance(rmotion->state, reachState.get());
                 if (distRandToReach < distRandToNear) {
                     expand = true;
@@ -237,23 +235,7 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
                     motion->control = siC_->allocControl();
                     siC_->copyControl(motion->control, rctrl);
 
-                    // ADDED:
-                    base::State *resultState = si_->allocState();
-                    // the control should be in [-10, 10], supposed to sample 11 uniformly (start at bottom, increment by 2):
-                    double *controlInpt = (motion->control)->as<oc::RealVectorControlSpace::ControlType>()->values;
-
-                    for(double i = -10; i <= 10; i += 2)
-                    {
-                        controlInpt[0] = i;
-
-                        siC_->propagateWhileValid(rstate, rctrl, FIXEDSTEPS, resultState);
-
-                        motion->reachables->push_back(ob::ScopedState<>(siC_->getStateSpace(), resultState));
-
-                    }
-
-                    // TODO: do we need to free memory allocated to resultState? or at least do we need to make it empty again?
-
+                    generateReachabilitySet(motion);
 
                     motion->steps = 1;
                     motion->parent = lastmotion;
@@ -293,10 +275,6 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
                 auto *motion = new Motion(siC_);
                 si_->copyState(motion->state, rmotion->state);
                 siC_->copyControl(motion->control, rctrl);
-
-                // ADDED:
-                // TODO: confirm can correctly copy our r(q) like this
-                motion->reachables = reach;
                 
                 motion->steps = cd;
                 motion->parent = nmotion;
@@ -356,7 +334,7 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
         siC_->freeControl(rmotion->control);
 
     // ADDED: clearing memory for the reachable set vector:
-    rmotion->reachables->clear();
+    rmotion->reachables.clear();
     
     delete rmotion;
     si_->freeState(xstate);

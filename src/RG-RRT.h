@@ -114,7 +114,7 @@ namespace ompl
                     // ADDING THIS
                     // A vector R, holding all the reachable states for the current state
                     // (since our states are stored in a NN structure where the nodes are motions, extended motion object to have a reachable set)
-                    std::vector<ompl::base::ScopedState<>> *reachables;
+                    std::vector<ompl::base::ScopedState<>> reachables;
 
                     // We are supposed to apply valid controls to our current state and store result states in reachables
                     // We set controls and apply them with SpaceInformation::propogate
