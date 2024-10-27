@@ -279,6 +279,9 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
                 motion->steps = cd;
                 motion->parent = nmotion;
 
+                // TODO: do we need to generate a reachability set here? (I added it, but want to double check I didn't mess anything up lol)
+                generateReachabilitySet(motion);
+
                 nn_->add(motion);
                 double dist = 0.0;
                 bool solv = goal->isSatisfied(motion->state, &dist);
@@ -337,7 +340,7 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
     rmotion->reachables.clear();
     
     delete rmotion;
-    si_->freeState(xstate);
+    //si_->freeState(xstate);
 
     OMPL_INFORM("%s: Created %u states", getName().c_str(), nn_->size());
 
