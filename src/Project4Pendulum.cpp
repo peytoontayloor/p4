@@ -29,6 +29,9 @@
 #include <ompl/control/planners/rrt/RRT.h>
 #include <ompl/control/planners/kpiece/KPIECE1.h>
 
+// need for benchmarking
+#include "ompl/tools/benchmark/Benchmark.h"
+
 namespace ob = ompl::base;
 namespace oc = ompl::control;
 
@@ -203,9 +206,31 @@ void planPendulum(oc::SimpleSetupPtr & ss, int choice)
     }
 }
 
-void benchmarkPendulum(oc::SimpleSetupPtr &/* ss */)
+void benchmarkPendulum(oc::SimpleSetupPtr & ss)
 {
-    // TODO: Do some benchmarking for the pendulum
+    // TODO: Do some benchmarking for the car
+    // Create benchmark class
+    // Had to dereference to work
+    ompl::tools::Benchmark b(*ss, "my experiment");
+
+    // For KPIECE:
+    ss->getStateSpace()->registerDefaultProjection(ob::ProjectionEvaluatorPtr(new PendulumProjection(ss->getStateSpace().get())));
+
+    // Add planners
+    b.addPlanner(ob::PlannerPtr(new oc::RRT(ss->getSpaceInformation())));
+    b.addPlanner(ob::PlannerPtr(new oc::KPIECE1(ss->getSpaceInformation())));
+    b.addPlanner(ob::PlannerPtr(new oc::RGRRT(ss->getSpaceInformation())));
+
+    // Create benchmark request
+    ompl::tools::Benchmark::Request req;
+    req.maxTime = 30.0;
+    req.maxMem = 100.0;
+    req.runCount = 20;
+    req.displayProgress = true;
+    b.benchmark(req);
+
+    // Generate file
+    b.saveResultsToFile();
 }
 
 int main(int /* argc */, char ** /* argv */)
