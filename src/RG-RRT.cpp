@@ -107,6 +107,8 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
         // if choose small duration, small reachable set, but if too big then reachable set too sparse (get min and get max way too extreme)
         // just pick a time and roll with it! (go back to setting FIXEDSTEPS)
         //int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
+        //pwv slower, but if better results then use pwv (compare)
+        //get min control might be 0
         int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, siC_->getMinControlDuration(), resultState);
 
         if (stepsNoCollision > 0) {
