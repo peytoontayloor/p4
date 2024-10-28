@@ -176,8 +176,6 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
     ob::State *rstate = rmotion->state;
     Control *rctrl = rmotion->control;
 
-    // TODO: RRT defines this but never uses, im currently using it temporarily store the point in R(qnear) closest to qrand
-    ob::State *xstate = si_->allocState();
     auto *nmotion = new Motion(siC_);
 
     while (!ptc)
@@ -196,23 +194,15 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
 
             // Distance between qnear and qrand
             double distRandToNear = distanceFunction(rmotion, nmotion);
-            double minDistRandToReach = distRandToNear;
             for (ob::ScopedState<> reachState: nmotion->reachables) {
                 double distRandToReach = si_->distance(rmotion->state, reachState.get());
                 if (distRandToReach < distRandToNear) {
                     expand = true;
-                    if (distRandToReach < minDistRandToReach) {
-                        // Finds the closest point in R(qnear) to qrand
-                        xstate = reachState.get();
-                        minDistRandToReach = distRandToReach;
-                    }                 
+                    break;              
                 }
             }
         }
        
-       // TODO: from the paper, it may be that we set rmotion->state = xstate, need to verify, not sure at all
-       // if we don't need to do this, we can prob remove xstate
-
         /* sample a random control that attempts to go towards the random state, and also sample a control duration */
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
         
@@ -344,7 +334,6 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
     rmotion->reachables.clear();
     
     delete rmotion;
-    //si_->freeState(xstate);
 
     OMPL_INFORM("%s: Created %u states", getName().c_str(), nn_->size());
 
