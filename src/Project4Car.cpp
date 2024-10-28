@@ -195,7 +195,7 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     // Create a control space.
     auto cspace(std::make_shared<oc::RealVectorControlSpace>(space, 2));
 
-    // Set the control space bounds (axis 0 - angular velocity, axis 1 - forward acceleration)
+    // Set the control space bounds (axis 0 - angular velocity, axis 1 - forward acceleration) // TODO: might need to change these to smaller values to fix collision issues
     ob::RealVectorBounds cbounds(2);
     cbounds.setLow(0, -0.3);
     cbounds.setHigh(0, 0.3);
@@ -310,7 +310,7 @@ void benchmarkCar(oc::SimpleSetupPtr & ss)
     ompl::tools::Benchmark::Request req;
     req.maxTime = 100.0;
     req.maxMem = 100.0;
-    req.runCount = 50;
+    req.runCount = 20;
     req.displayProgress = true;
     b.benchmark(req);
 
