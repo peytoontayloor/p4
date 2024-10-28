@@ -101,20 +101,19 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
         (motion->control)->as<oc::RealVectorControlSpace::ControlType>()->values[0] = i;
 
         // Propgates forward and performes collision checking
-        // TODO: FIXEDSTEPS...maybe use siC_->getMinControlDuration()? or getMaxControlDuration?... dont know
-        int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
+        // Change FIXEDSTEPS to getMinControlDuration(), both that and getMaxDuration work, but I feel like the paths for getMinControlDuration
+        // are less chaotic- I can research these more to get better justification for why I chose min over max :)
+        //int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
+        int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, siC_->getMinControlDuration(), resultState);
 
         if (stepsNoCollision > 0) {
             // Only add the last valid state if it is not the start state
             motion->reachables.push_back(ob::ScopedState<>(siC_->getStateSpace(), resultState));
         }
     }
-
-    // TODO: do we need to free memory allocated to resultState? or at least do we need to make it empty again?
-    // not sure, need to check, but thinking that we do need to. especially if scopedstate copies resultState (and if it doesn't
-    // that's a problem cuz then we'd be overwrtiting previous states)
-    // if that's the case resultState isn't doing anything after this function terminates
-    // si_->freeState(resultState);
+    
+    // We can safely free the resultState!
+    si_->freeState(resultState);
 }
 
 // Solve:
