@@ -233,7 +233,6 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     goal[2] = 0.0; // yaw 
     goal[3] = 0.0; // v
   
-    
     ss->setStartAndGoalStates(start, goal, 0.05);
     ss->setup();
 
@@ -311,7 +310,7 @@ void benchmarkCar(oc::SimpleSetupPtr & ss)
     ompl::tools::Benchmark::Request req;
     req.maxTime = 100.0;
     req.maxMem = 100.0;
-    req.runCount = 20;
+    req.runCount = 50;
     req.displayProgress = true;
     b.benchmark(req);
 
