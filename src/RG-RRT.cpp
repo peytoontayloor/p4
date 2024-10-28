@@ -102,7 +102,10 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
 
         // Propgates forward and performes collision checking
         // Change FIXEDSTEPS to getMinControlDuration(), both that and getMaxDuration work, but I feel like the paths for getMinControlDuration
-        // are less chaotic- I can research these more to get better justification for why I chose min over max :)
+        
+        //TODO:
+        // if choose small duration, small reachable set, but if too big then reachable set too sparse (get min and get max way too extreme)
+        // just pick a time and roll with it! (go back to setting FIXEDSTEPS)
         //int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
         int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, siC_->getMinControlDuration(), resultState);
 
