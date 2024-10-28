@@ -109,7 +109,16 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
         //int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
         //pwv slower, but if better results then use pwv (compare)
         //get min control might be 0
-        int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, siC_->getMinControlDuration(), resultState);
+
+        // TODO: when commented out the below check for 0, less collisions in our plotting and more correct looking paths
+        // HOWEVER, adding this in did make a difference with benchmarking, so maybe this is where our code is going wrong?
+        int stps = siC_->getMinControlDuration();
+        /*if (stps == 0)
+        {
+            // Set to a fixed value (picked 2? I don't know)
+            stps = 2;
+        }*/
+        int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, stps, resultState);
 
         if (stepsNoCollision > 0) {
             // Only add the last valid state if it is not the start state
