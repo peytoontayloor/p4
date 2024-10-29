@@ -112,11 +112,13 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
 
         // TODO: when commented out the below check for 0, less collisions in our plotting and more correct looking paths
         // HOWEVER, adding this in did make a difference with benchmarking, so maybe this is where our code is going wrong?
+        // TODO: maybe consider setting fixed steps to a value depending on where the obstacles are? not sure how to do this lol
         int stps = siC_->getMinControlDuration();
         /*if (stps == 0)
         {
             // Set to a fixed value (picked 2? I don't know)
-            stps = 2;
+            //stps = 0.01; --> too small gives weird paths with less collisions but still collisions
+            //stps = siC_->getMaxControlDuration(); --> too big of jumps resulting in collisions
         }*/
         int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, stps, resultState);
 
@@ -198,7 +200,16 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
                 goal_s->sampleGoal(rstate); //qrand
             else
                 sampler_->sampleUniform(rstate); //qrand
+            
 
+            // TEST: see if qrand is not a valid state, shouldn't move toward it? 
+            // This decision seemed to lead to less collision prone paths
+            if (!(si_->isValid(rstate)))
+            {
+                continue;
+            }
+
+            // TODO: is it safe to assume qnear is collision free since already in the tree?
             nmotion = nn_->nearest(rmotion); //qnear
 
             // Distance between qnear and qrand
@@ -274,16 +285,20 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
             if (cd >= siC_->getMinControlDuration())
             {
                 /* create a motion */
-                // Copying our sampled state and control into a new motion getting aded to the tree
+                // Copying our sampled state and control into a new motion getting added to the tree
                 auto *motion = new Motion(siC_);
                 si_->copyState(motion->state, rmotion->state);
                 siC_->copyControl(motion->control, rctrl);
+
+                // ADDED: solved major bugs yippee!
+                motion->reachables = rmotion->reachables;
                 
                 motion->steps = cd;
                 motion->parent = nmotion;
 
                 // TODO: do we need to generate a reachability set here? (I added it, but want to double check I didn't mess anything up lol)
-                generateReachabilitySet(motion);
+                //generateReachabilitySet(motion);
+                // UPDATEE!! ^^ no we don't, this caused major issues because creating a new reachability set when we are just copying info over from qrand
 
                 nn_->add(motion);
                 double dist = 0.0;
