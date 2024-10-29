@@ -310,7 +310,7 @@ void benchmarkCar(oc::SimpleSetupPtr & ss)
     ompl::tools::Benchmark::Request req;
     req.maxTime = 100.0;
     req.maxMem = 100.0;
-    req.runCount = 20;
+    req.runCount = 50;
     req.displayProgress = true;
     b.benchmark(req);
 
