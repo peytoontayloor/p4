@@ -45,16 +45,18 @@ public:
 
     unsigned int getDimension() const override
     {
-        return 1;
+        return 2;
     }
 
     void project(const ob::State * state, Eigen::Ref<Eigen::VectorXd> projection) const override
     {
         const auto *cmpd = state->as<ob::CompoundStateSpace::StateType>();
         const auto *so2state = cmpd->as<ob::SO2StateSpace::StateType>(0);
+        const auto *r = cmpd->as<ob::RealVectorStateSpace::StateType>(1);
         
         //grabbing theta from so2->value
         projection(0) = so2state->value;
+        projection(1) = r->values[0];
     }
 };
 
