@@ -110,7 +110,9 @@ void makeStreet(std::vector<Rectangle> & obstacles)
 {
     // Dimensions from Project 4, Figure 2.
 
-    Rectangle r1, r2, r3, r4;
+    // TODO: try to run planner without obstacles, see if can find solution with benchmarking, if can
+    //environment is too complicated, if can't issue, lies somewhere else
+   /*Rectangle r1, r2, r3, r4;
 
     r1.x = -5;
     r1.y = -10;
@@ -135,7 +137,7 @@ void makeStreet(std::vector<Rectangle> & obstacles)
     obstacles.push_back(r1);
     obstacles.push_back(r2);
     obstacles.push_back(r3);
-    obstacles.push_back(r4);
+    obstacles.push_back(r4);*/
 }
 
 // Intersect the point (x,y) with the set of rectangles. If the point lies outside of all obstacles 
@@ -233,7 +235,7 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     goal[2] = 0.0; // yaw 
     goal[3] = 0.0; // v
   
-    ss->setStartAndGoalStates(start, goal, 0.05);
+    ss->setStartAndGoalStates(start, goal, 0.1);
     ss->setup();
 
     return ss;
@@ -298,19 +300,21 @@ void benchmarkCar(oc::SimpleSetupPtr & ss)
     // Create benchmark class
     ompl::tools::Benchmark b(*ss, "my experiment");
 
-    // For KPIECE:
-    ss->getStateSpace()->registerDefaultProjection(ob::ProjectionEvaluatorPtr(new CarProjection(ss->getStateSpace().get())));
-
     // Add planners
     b.addPlanner(ob::PlannerPtr(new oc::RRT(ss->getSpaceInformation())));
-    b.addPlanner(ob::PlannerPtr(new oc::KPIECE1(ss->getSpaceInformation())));
     b.addPlanner(ob::PlannerPtr(new oc::RGRRT(ss->getSpaceInformation())));
+
+    // For KPIECE:
+    ss->getStateSpace()->registerDefaultProjection(ob::ProjectionEvaluatorPtr(new CarProjection(ss->getStateSpace().get())));
+    b.addPlanner(ob::PlannerPtr(new oc::KPIECE1(ss->getSpaceInformation())));
 
     // Create benchmark request
     ompl::tools::Benchmark::Request req;
-    req.maxTime = 300.0;
-    req.maxMem = 100.0;
-    req.runCount = 50;
+    req.maxTime = 60.0;
+
+    //Do alot of memory
+    req.maxMem = 1000.0;
+    req.runCount = 25;
     req.displayProgress = true;
     b.benchmark(req);
 
