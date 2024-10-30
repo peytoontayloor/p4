@@ -15,3 +15,7 @@
 # Ignore core dumps
 core.*
 vgcore.*
+
+# Ignore old benchamarks and plots
+oldBenchmarks/
+oldPlots/
