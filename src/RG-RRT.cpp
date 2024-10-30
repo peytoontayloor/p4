@@ -82,7 +82,7 @@ void oc::RGRRT::freeMemory()
 
             // ADDED: clearing memory for the reachable set vector:
             motion->reachables.clear();
-
+            
             delete motion;
         }
     }
@@ -95,14 +95,16 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
     motion->control = siC_->allocControl();
     // Get bounds of index 0 of control space
     auto bounds = siC_->getControlSpace()->as<oc::RealVectorControlSpace>()->getBounds();
+   
+
     double stepSize = bounds.getDifference()[0] / 11.0;
+    OMPL_INFORM("%s: [%lf, %lf], %lf step size", getName().c_str(), bounds.low[0], bounds.high[0], stepSize);
+
     for(double i = bounds.low[0]; i <= bounds.high[0]; i += stepSize)
     {
         (motion->control)->as<oc::RealVectorControlSpace::ControlType>()->values[0] = i;
 
-        // Propgates forward and performes collision checking
-        // Change FIXEDSTEPS to getMinControlDuration(), both that and getMaxDuration work, but I feel like the paths for getMinControlDuration
-        
+        // Propgates forward and performes collision checking        
         //TODO:
         // if choose small duration, small reachable set, but if too big then reachable set too sparse (get min and get max way too extreme)
         // just pick a time and roll with it! (go back to setting FIXEDSTEPS)
@@ -113,13 +115,15 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
         // TODO: when commented out the below check for 0, less collisions in our plotting and more correct looking paths
         // HOWEVER, adding this in did make a difference with benchmarking, so maybe this is where our code is going wrong?
         // TODO: maybe consider setting fixed steps to a value depending on where the obstacles are? not sure how to do this lol
+
         int stps = siC_->getMinControlDuration();
-        /*if (stps == 0)
-        {
-            // Set to a fixed value (picked 2? I don't know)
-            //stps = 0.01; --> too small gives weird paths with less collisions but still collisions
-            //stps = siC_->getMaxControlDuration(); --> too big of jumps resulting in collisions
-        }*/
+        // if (stps == 0)
+        // {   
+        //     // Set to a fixed value (picked 2? I don't know)
+        //     //stps = 0.01; --> too small gives weird paths with less collisions but still collisions
+        //     //stps = siC_->getMaxControlDuration(); --> too big of jumps resulting in collisions
+        //     stps = 2; 
+        // }
         int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, stps, resultState);
 
         if (stepsNoCollision > 0) {
@@ -128,6 +132,8 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
         }
     }
     
+    OMPL_INFORM("%s: %u states in reachability set", getName().c_str(), motion->reachables.size());
+
     // We can safely free the resultState!
     si_->freeState(resultState);
 }
@@ -151,9 +157,10 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
         auto *motion = new Motion(siC_);
         si_->copyState(motion->state, st);
         siC_->nullControl(motion->control);
-
         // Populate reachability set for start state
         generateReachabilitySet(motion);
+        
+        OMPL_INFORM("%s: Init start state, %u reachables", getName().c_str(), motion->reachables.size());
 
         nn_->add(motion);
     }
@@ -177,6 +184,7 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
         controlSampler_ = siC_->allocDirectedControlSampler();
 
     OMPL_INFORM("%s: Starting planning with %u states already in datastructure", getName().c_str(), nn_->size());
+
 
     Motion *solution = nullptr;
     Motion *approxsol = nullptr;
@@ -204,12 +212,13 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
 
             // TEST: see if qrand is not a valid state, shouldn't move toward it? 
             // This decision seemed to lead to less collision prone paths
-            if (!(si_->isValid(rstate)))
-            {
-                continue;
-            }
+            // TODO: maybe remove... pretty pretty sure that the sampler has this built in check already
+            // if (!(si_->isValid(rstate)))
+            // {
+            //     continue;
+            // }
 
-            // TODO: is it safe to assume qnear is collision free since already in the tree?
+            // TODO: is it safe to assume qnear is collision free since already in the tree? -> yep! i think so
             nmotion = nn_->nearest(rmotion); //qnear
 
             // Distance between qnear and qrand
@@ -227,6 +236,10 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
         unsigned int cd = controlSampler_->sampleTo(rctrl, nmotion->control, nmotion->state, rmotion->state);
         
         // Populate reachability set for the new state
+        OMPL_INFORM("%s: Generate reachability set for qr: %p", getName().c_str(), rmotion);
+
+        // Ensure reachability set is cleared
+        rmotion->reachables.clear();
         generateReachabilitySet(rmotion);
 
         if (addIntermediateStates_)
@@ -295,10 +308,6 @@ ob::PlannerStatus oc::RGRRT::solve(const base::PlannerTerminationCondition &ptc)
                 
                 motion->steps = cd;
                 motion->parent = nmotion;
-
-                // TODO: do we need to generate a reachability set here? (I added it, but want to double check I didn't mess anything up lol)
-                //generateReachabilitySet(motion);
-                // UPDATEE!! ^^ no we don't, this caused major issues because creating a new reachability set when we are just copying info over from qrand
 
                 nn_->add(motion);
                 double dist = 0.0;
