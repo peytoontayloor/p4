@@ -81,6 +81,7 @@ void oc::RGRRT::freeMemory()
                 siC_->freeControl(motion->control);
 
             // ADDED: clearing memory for the reachable set vector:
+            // TODO: try to loop through and free each individual state
             motion->reachables.clear();
             
             delete motion;
