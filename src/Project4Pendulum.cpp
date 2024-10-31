@@ -153,7 +153,7 @@ oc::SimpleSetupPtr createPendulum(double torque)
     goal[0] =  3.14159/2;
     goal[1] = 0.0;
 
-    ss->setStartAndGoalStates(start, goal, 0.05);
+    ss->setStartAndGoalStates(start, goal, 0.08);
 
     ss->setup();
 
@@ -217,9 +217,9 @@ void benchmarkPendulum(oc::SimpleSetupPtr & ss)
 
     // Create benchmark request
     ompl::tools::Benchmark::Request req;
-    req.maxTime = 100.0;
-    req.maxMem = 100.0;
-    req.runCount = 50;
+    req.maxTime = 45.0;
+    req.maxMem = 3000.0;
+    req.runCount = 20;
     req.displayProgress = true;
     b.benchmark(req);
 
