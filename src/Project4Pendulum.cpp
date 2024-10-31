@@ -91,7 +91,6 @@ void pendulumODE(const oc::ODESolver::StateType & q, const oc::Control * control
     qdot[1] = ((-9.81)*(cos(theta)) + torque);
 }
 
-// ADDED FUNCTION
 // Just like car setup except we don't need to check for obstacle collision since no obstacles
 // Still should check bounds though
 bool isValidStatePendulum(const ob::State *state, const oc::SpaceInformation *si)
@@ -110,8 +109,6 @@ void PostIntegration (const ob::State* /*state*/, const oc::Control* /*control*/
 oc::SimpleSetupPtr createPendulum(double torque)
 {
     // Create pendulum's state space: SO(2) X R
-    //auto space(std::make_shared<ob::SO2StateSpace>());
-
     const auto so2 = std::make_shared<ob::SO2StateSpace>();
     const auto r = std::make_shared<ob::RealVectorStateSpace>(1);
     const auto space = so2 + r;
@@ -165,10 +162,6 @@ oc::SimpleSetupPtr createPendulum(double torque)
 
 void planPendulum(oc::SimpleSetupPtr & ss, int choice)
 {
-    /*
-        kept this one the same as the car plan function
-    */
-
     //set the planner based on choice:
     if (choice == 1)
     {
@@ -210,7 +203,6 @@ void planPendulum(oc::SimpleSetupPtr & ss, int choice)
 
 void benchmarkPendulum(oc::SimpleSetupPtr & ss)
 {
-    // TODO: Do some benchmarking for the car
     // Create benchmark class
     // Had to dereference to work
     ompl::tools::Benchmark b(*ss, "my experiment");

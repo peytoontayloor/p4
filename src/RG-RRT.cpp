@@ -6,21 +6,15 @@
 
 #include "RG-RRT.h"
 
-// Copied over RRT from OMPL as a starting point, added some comments and left comments from original RRT
-
 #include "ompl/control/planners/rrt/RRT.h"
 #include "ompl/base/goals/GoalSampleableRegion.h"
 #include "ompl/tools/config/SelfConfig.h"
 #include <limits>
 
-// ADDED: macro for the steps we will propagate to get R(q)
-// TODO: get a good step/time value for here, left as 2 right now
-#define FIXEDSTEPS 2
-
-// ADDED: needed for reachables vector for each state in the tree
+// For reachables vector for each state in the tree
 #include "ompl/base/ScopedState.h"
 
-// ADDED: for setting the control input
+// For setting the control input
 #include <ompl/control/spaces/RealVectorControlSpace.h>
 
 namespace ob = ompl::base;
@@ -79,11 +73,7 @@ void oc::RGRRT::freeMemory()
                 si_->freeState(motion->state);
             if (motion->control)
                 siC_->freeControl(motion->control);
-
-            // ADDED: clearing memory for the reachable set vector:
-            // TODO: try to loop through and free each individual state
             motion->reachables.clear();
-            
             delete motion;
         }
     }
@@ -97,7 +87,6 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
     // Get bounds of index 0 of control space
     auto bounds = siC_->getControlSpace()->as<oc::RealVectorControlSpace>()->getBounds();
    
-
     double stepSize = bounds.getDifference()[0] / 11.0;
     OMPL_INFORM("%s: [%lf, %lf], %lf step size", getName().c_str(), bounds.low[0], bounds.high[0], stepSize);
 
@@ -105,27 +94,11 @@ void oc::RGRRT::generateReachabilitySet(oc::RGRRT::Motion *motion) {
     {
         (motion->control)->as<oc::RealVectorControlSpace::ControlType>()->values[0] = i;
 
-        // Propgates forward and performes collision checking        
-        //TODO:
-        // if choose small duration, small reachable set, but if too big then reachable set too sparse (get min and get max way too extreme)
-        // just pick a time and roll with it! (go back to setting FIXEDSTEPS)
-        //int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, FIXEDSTEPS, resultState);
-        //pwv slower, but if better results then use pwv (compare)
-        //get min control might be 0
+        // Propgates forward and performes collision checking       
+        int cd = siC_->getMinControlDuration();
+        int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, cd, resultState);
+        OMPL_INFORM("%s: %d cd, %d steps wo collision", getName().c_str(), cd, stepsNoCollision);
 
-        // TODO: when commented out the below check for 0, less collisions in our plotting and more correct looking paths
-        // HOWEVER, adding this in did make a difference with benchmarking, so maybe this is where our code is going wrong?
-        // TODO: maybe consider setting fixed steps to a value depending on where the obstacles are? not sure how to do this lol
-
-        int stps = siC_->getMinControlDuration();
-        // if (stps == 0)
-        // {   
-        //     // Set to a fixed value (picked 2? I don't know)
-        //     //stps = 0.01; --> too small gives weird paths with less collisions but still collisions
-        //     //stps = siC_->getMaxControlDuration(); --> too big of jumps resulting in collisions
-        //     stps = 2; 
-        // }
-        int stepsNoCollision = siC_->propagateWhileValid(motion->state, motion->control, stps, resultState);
 
         if (stepsNoCollision > 0) {
             // Only add the last valid state if it is not the start state

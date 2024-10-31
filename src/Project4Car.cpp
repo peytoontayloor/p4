@@ -49,17 +49,13 @@ public:
 
     unsigned int getDimension() const override
     {
-        // Following the demo at:
-        //https://ompl.kavrakilab.org/projections.html
-
-        // Here we want to say what dimension are going to project the car into
+        // Project onto 2D space
         return 2;
     }
 
     void project(const ob::State * state, Eigen::Ref<Eigen::VectorXd> projection) const override
     {
         // Projecting x from se2 into pos0 and y from se2 into pos1 
-
         const auto *cmpd = state->as<ob::CompoundStateSpace::StateType>();
         const auto *se2state = cmpd->as<ob::SE2StateSpace::StateType>(0);
 
@@ -109,10 +105,7 @@ void carODE(const oc::ODESolver::StateType & q, const oc::Control * control,
 void makeStreet(std::vector<Rectangle> & obstacles)
 {
     // Dimensions from Project 4, Figure 2.
-
-    // TODO: try to run planner without obstacles, see if can find solution with benchmarking, if can
-    //environment is too complicated, if can't issue, lies somewhere else
-   /*Rectangle r1, r2, r3, r4;
+    Rectangle r1, r2, r3, r4;
 
     r1.x = -5;
     r1.y = -10;
@@ -137,7 +130,7 @@ void makeStreet(std::vector<Rectangle> & obstacles)
     obstacles.push_back(r1);
     obstacles.push_back(r2);
     obstacles.push_back(r3);
-    obstacles.push_back(r4);*/
+    obstacles.push_back(r4);
 }
 
 // Intersect the point (x,y) with the set of rectangles. If the point lies outside of all obstacles 
@@ -197,7 +190,7 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     // Create a control space.
     auto cspace(std::make_shared<oc::RealVectorControlSpace>(space, 2));
 
-    // Set the control space bounds (axis 0 - angular velocity, axis 1 - forward acceleration) // TODO: might need to change these to smaller values to fix collision issues
+    // Set the control space bounds (axis 0 - angular velocity, axis 1 - forward acceleration)
     ob::RealVectorBounds cbounds(2);
     cbounds.setLow(0, -0.3);
     cbounds.setHigh(0, 0.3);
@@ -235,7 +228,7 @@ oc::SimpleSetupPtr createCar(std::vector<Rectangle> & obstacles)
     goal[2] = 0.0; // yaw 
     goal[3] = 0.0; // v
   
-    ss->setStartAndGoalStates(start, goal, 1);
+    ss->setStartAndGoalStates(start, goal, 0.75);
     ss->setup();
 
     return ss;
@@ -284,7 +277,7 @@ void planCar(oc::SimpleSetupPtr & ss, int choice)
         path.printAsMatrix(std::cout);
 
         // Capture output in path.txt file
-        std::ofstream pathOutput("path.txt");
+        std::ofstream pathOutput("scripts/path.txt");
         path.printAsMatrix(pathOutput);
         pathOutput.close();
     }
@@ -301,18 +294,18 @@ void benchmarkCar(oc::SimpleSetupPtr & ss)
     ompl::tools::Benchmark b(*ss, "my experiment");
 
     // Add planners
-    b.addPlanner(ob::PlannerPtr(new oc::RRT(ss->getSpaceInformation())));
+    // b.addPlanner(ob::PlannerPtr(new oc::RRT(ss->getSpaceInformation())));
     b.addPlanner(ob::PlannerPtr(new oc::RGRRT(ss->getSpaceInformation())));
 
     // For KPIECE:
     ss->getStateSpace()->registerDefaultProjection(ob::ProjectionEvaluatorPtr(new CarProjection(ss->getStateSpace().get())));
-    b.addPlanner(ob::PlannerPtr(new oc::KPIECE1(ss->getSpaceInformation())));
+    // b.addPlanner(ob::PlannerPtr(new oc::KPIECE1(ss->getSpaceInformation())));
 
     // Create benchmark request
     ompl::tools::Benchmark::Request req;
-    req.maxTime = 60.0;
+    req.maxTime = 45.0;
     req.maxMem = 3000.0;
-    req.runCount = 50;
+    req.runCount = 20;
     req.displayProgress = true;
     b.benchmark(req);
 
