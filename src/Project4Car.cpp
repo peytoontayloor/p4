@@ -316,7 +316,7 @@ void benchmarkCar(oc::SimpleSetupPtr & ss)
 int main(int /* argc */, char ** /* argv */)
 {
     std::vector<Rectangle> obstacles;
-    // makeStreet(obstacles);
+    makeStreet(obstacles);
 
     int choice;
     do
